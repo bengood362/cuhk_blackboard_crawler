@@ -2,6 +2,10 @@
 
 Whenever you want to stop the crawler, press CTRL+C.
 
+## Warranty disclaimer
+
+Unless required by applicable law or agreed to in writing, Licensor provides the Work (and each Contributor provides its Contributions) on an AS IS BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE. You are solely responsible for determining the appropriateness of using or redistributing the Work and assume any risks associated with Your exercise of permissions under this License.
+
 ## Windows
 
 1. Install python 2.7 from [Here](https://www.python.org/downloads/release/python-2714/), if you are using 64 bit please select Windows x86-64 MSI installer, or else please select Windows x86 MSI installer.
@@ -48,5 +52,7 @@ Q: What if blackboard update and break the script?
 A: Maybe I will update it or maybe I won't.  
 Q: What if my password leaked using this script?   
 A: I will not compensate for any of your loss. No warranty of any kind is provided  
+Q: What if ......?  
+A: I am not responsible for any of your loss.  
 Q: Why is there are some empty folders?  
 A: Because the lecturer/ tutor/ professor has opened the course but haven't put any materials inside  
