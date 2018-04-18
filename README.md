@@ -4,13 +4,13 @@ Normally it can be run with `python blackboard_crawler.py`, but I haven't tested
 
 ## OSX
 
-1. Install python
+1. Install python 2.7 
 2. `pip install requests`
 3. `python blackboard_crawler.py`
 
 ## Linux
 
-maybe later
+same as OSX
 
 ## Windows
 
@@ -30,6 +30,7 @@ maybe later
 Tested environment:  
 
 1. OSX & python2
+2. ubuntu & python2
 
 Q: Will you add old blackboard?  
 A: No.  
