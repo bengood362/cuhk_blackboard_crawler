@@ -1,6 +1,6 @@
 # cuhk_blackboard_crawler
 
-Normally it can be run with `python blackboard_crawler.py`, but I haven't tested on Linux/ Windows yet.
+Whenever you want to stop the crawler, press CTRL+C.
 
 ## Windows
 
