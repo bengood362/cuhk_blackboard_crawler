@@ -24,9 +24,12 @@ def mkdir(name):
       pass # dir exists
     else:
       os.mkdir(name)
+    return name
   except Exception as inst:
     print(inst)
-    os.mkdir(str(name)+str(uuid.uuid4().hex[:8]))
+    dir_name = str(name)+str(uuid.uuid4().hex[:8])
+    os.mkdir(dir_name)
+    return dir_name
 
 def download_file(url, path, sess):
   try:
@@ -41,7 +44,7 @@ def download_file(url, path, sess):
     file_size = resp.headers['Content-Length']
     if(int(file_size)>=1024*1024*100):
       while(1):
-        download = raw_input("The file is around {0}MB, still download?(y/n)".format(int(file_size)/1024/1024))
+        download = raw_input("The file {1} is around {0}MB, still download?(y/n)".format(int(file_size)/1024/1024, local_filename))
         if(download.lower() == 'y'):
           break
         elif(download.lower() == 'n'):
@@ -131,7 +134,6 @@ def get_course_sections(course_info, sess):
   try:
     course_id, course_code, course_name = course_info
     print("reading course: {0}".format(course_name))
-    mkdir(os.path.join(FOLDER_PREFIX, course_name))
     course_url = "https://blackboard.cuhk.edu.hk/webapps/blackboard/execute/courseMain?course_id={0}".format(course_id)
     course_url_resp = sess.get(course_url)
     section_raw = re.findall('<hr>(.+?)<hr>',course_url_resp.text)[0]
@@ -148,7 +150,8 @@ def get_item_from_section(path_prefix, section, sess):
   try:
     section_url, section_name = section
     print("--reading sections: {0}".format(section_name))
-    mkdir(path_prefix)
+    dir_name = mkdir(path_prefix)
+    # path_prefix = dir_name
     if(blackboard_url not in section_url):
       section_url = blackboard_url+section_url
     course_section_resp = sess.get(section_url)
@@ -194,46 +197,53 @@ def download_item_from_directories(path_prefix, directories, sess, depth):
     inst = str(inst)
     print(caller+'\t'+inst)
 
-# def main():
-print("If you think the program has stuck, feel free to press ctrl+C to stop it")
-print("This blackboard notes crawler make no warranty of any kind")
-print("please press enter to continue")
-raw_input()
-cnt=0
-while(1):
-  cnt+=1
-  username = raw_input("Your sid/ sid{0}: ".format(email_suffix))
-  password = getpass()
-  login_page_url, sess = init_bb_session()
-  if(email_suffix not in username):
-    username = username+email_suffix
-  sess = login(username, password, login_page_url, sess)
-  if(sess):
-    break
-  if(cnt>=3):
-    print("Wrong login for 3 times, byebye")
-mkdir(FOLDER_PREFIX)
-userid = get_userid(sess)
-course_infos = get_courses(userid, sess)
+def main():
+  print("=========blackboard crawler==============")
+  print("If you think the program has stuck, feel free to press ctrl+C to stop it")
+  print("This blackboard notes crawler make no warranty of any kind")
+  print("I will not be able to receive your username & password using this script.")
+  print("please press enter to continue")
+  print("=========================================")
+  raw_input()
+  cnt=0
+  while(1):
+    cnt+=1
+    username = raw_input("Your sid/ sid{0}: ".format(email_suffix))
+    password = getpass()
+    login_page_url, sess = init_bb_session()
+    if(email_suffix not in username):
+      username = username+email_suffix
+    sess = login(username, password, login_page_url, sess)
+    if(sess):
+      break
+    if(cnt>=3):
+      print("Wrong login for 3 times, byebye")
+  dir_name = mkdir(FOLDER_PREFIX)
+  # FOLDER_PREFIX = dir_name
+  userid = get_userid(sess)
+  course_infos = get_courses(userid, sess)
 
-for course_info in course_infos:
-  course_name = course_info[2]
-  sections = get_course_sections(course_info, sess)
-  if(os.path.exists(os.path.join(FOLDER_PREFIX, course_name))):
-    while(1):
-      download = raw_input("folder exists for {0}, download anyway? (y/n)".format(course_name))
-      if(download.lower() == 'y'):
-        break
-      elif(download.lower() == 'n'):
-        sections=[]
-        break
-      else:
-        print("Please input only y or n!")
-  for section in sections:
-    section_title = section[1]
-    path_prefix = os.path.join(FOLDER_PREFIX, course_name, section_title)
-    directories, files = get_item_from_section(path_prefix, section, sess)
-    download_item_from_directories(path_prefix, directories, sess, MAX_DEPTH)
-    download_files(path_prefix, files, sess)
-    time.sleep(SLEEP_TIME)
+  for course_info in course_infos:
+    course_name = course_info[2]
+    sections = get_course_sections(course_info, sess)
+    if(os.path.exists(os.path.join(FOLDER_PREFIX, course_name))):
+      while(1):
+        download = raw_input("folder exists for {0}, download anyway? (y/n)".format(course_name))
+        if(download.lower() == 'y'):
+          break
+        elif(download.lower() == 'n'):
+          sections=[]
+          break
+        else:
+          print("Please input only y or n!")
+    dir_name = mkdir(os.path.join(FOLDER_PREFIX, course_name)) # NOTE: change to something=dir_name later
+    for section in sections:
+      section_title = section[1]
+      path_prefix = os.path.join(FOLDER_PREFIX, course_name, section_title)
+      directories, files = get_item_from_section(path_prefix, section, sess)
+      download_item_from_directories(path_prefix, directories, sess, MAX_DEPTH)
+      download_files(path_prefix, files, sess)
+      time.sleep(SLEEP_TIME)
 
+if __name__ == "__main__":
+  main()
