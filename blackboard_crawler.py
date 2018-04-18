@@ -203,6 +203,16 @@ course_infos = get_courses(userid, sess)
 for course_info in course_infos:
   course_name = course_info[2]
   sections = get_course_sections(course_info, sess)
+  if(os.path.exists(os.path.join(FOLDER_PREFIX, course_name))):
+    while(1):
+      download = raw_input("folder exists for {0}, download anyway? (y/n)".format(course_name))
+      if(download.lower() == 'y'):
+        break
+      elif(download.lower() == 'n'):
+        sections=[]
+        break
+      else:
+        print("Please input only y or n!")
   for section in sections:
     section_title = section[1]
     path_prefix = os.path.join(FOLDER_PREFIX, course_name, section_title)
