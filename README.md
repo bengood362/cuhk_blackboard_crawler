@@ -38,6 +38,14 @@ never
 * PR any improvement
 * test in more environment
 
+## (Possibly) updates
+* read file headers(course->section->directories/files->directories/files...) first, instead of read and write together
+* GUI & exe for Windows user
+* write to tmp_download file and rename later, so that keyboard interupt won't break the file writing
+* use XML/ HTML parser instead of regular expression
+* proper unit testing
+* more reasonable time.sleep location
+
 ## FAQ
 
 Tested environment:  
