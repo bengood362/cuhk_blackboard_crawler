@@ -39,7 +39,7 @@ def download_file(url, path, sess):
     url = urllib2.urlparse.unquote(resp.url)
     if(platform == "darwin"):
       url = url.encode('latin1')
-    print(str(path)+' '+str(url))
+    print('{0} {1}'.format(path,url))
     local_filename = urllib2.urlparse.unquote(url.split('/')[-1])
     file_size = resp.headers['Content-Length']
     if(int(file_size)>=1024*1024*100):
