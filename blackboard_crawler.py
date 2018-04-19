@@ -17,9 +17,12 @@ from getpass import getpass
 import xml.etree.ElementTree as ET # XML parser is not used because the fucking &ndash;
 import inspect # debugging purpose
 from sys import platform
+import string
+valid_chars = "-_.()\\/ %s%s" % (string.ascii_letters, string.digits)
 
 def mkdir(name):
   try:
+    name = ''.join(c for c in name if c in valid_chars)
     if(os.path.exists(name)):
       pass # dir exists
     else:
@@ -33,6 +36,7 @@ def mkdir(name):
 
 def download_file(url, path, sess):
   try:
+    path = ''.join(c for c in path if c in valid_chars)
     if(blackboard_url not in url):
       url = blackboard_url+url
     resp = sess.get(url, stream=True)
