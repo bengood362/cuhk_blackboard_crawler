@@ -18,10 +18,11 @@ class AuthenticationException(Exception):
   pass
 
 class BCFlags(object):
-  SLEEP_TIME=0
+  SLEEP_TIME=1
   MAX_DEPTH=2
   FOLDER_PREFIX='blackboard'
   VERBOSE=True
+  IGNORE_SAME=True
 
 class BCParams(object):
   pass
@@ -39,6 +40,16 @@ class BlackboardCrawler:
     self.password = password
     self.blackboard_url = blackboard_url
     self.email_suffix = email_suffix
+
+  def log(self, s, t=0):
+    if(self.flags.VERBOSE or t!=0):
+      print (s)
+
+  def title_print(self, s):
+    s = '@ {0} @'.format(s)
+    print('@'*len(s))
+    print(s)
+    print('@'*len(s))
 
   # return True/ False
   def login(self):
@@ -72,9 +83,39 @@ class BlackboardCrawler:
     selected_courses_info = map(lambda x: x[1], selected_courses_info)
     self._download(selected_courses_info)
 
-  def log(self, message):
-    if(self.flags.VERBOSE):
-      print (message)
+  def get_metadata_from_file(self, file_name):
+    try:
+      if(not os.path.isfile(file_name)):
+        return {'size': -1}
+      size = os.path.getsize(file_name)
+    except Exception as inst:
+      self.log(url)
+      self.log(inst)
+      return {'size': -1}
+    return {'size': size}
+
+  def get_metadata_from_url(self, url):
+    try:
+      resp = self.sess.get(url)
+      headers = resp.headers
+      size = int(headers['Content-Length'])
+    except Exception as inst:
+      self.log(url)
+      self.log(inst)
+      return {'size': -1}
+    return {'size': size}
+
+  def file_same(self, file_name, url):
+    if(not self.flags.IGNORE_SAME):
+      return False
+    metadata_file = self.get_metadata_from_file(file_name)
+    metadata_url = self.get_metadata_from_url(url)
+    # DEBUG: return True if size same, return False if not
+    self.log(metadata_file)
+    self.log(metadata_url)
+    if(metadata_file['size']<0 or metadata_url['size']<0):
+      return False
+    return (metadata_file['size'] == metadata_url['size'])
 
   def _download(self, courses_info):
     for course_info in courses_info:
@@ -112,12 +153,15 @@ class BlackboardCrawler:
     #     else:
     #       print("Please input only y or n!")
     # NOTE the stream=True parameter
-    r = resp
-    with open(os.path.join(path, local_filename.decode('utf-8')), 'wb') as f:
-      for chunk in r.iter_content(chunk_size=1024):
-        if chunk: # filter out keep-alive new chunks
-          f.write(chunk)
-              #f.flush() commented by recommendation from J.F.Sebastian
+    if(not self.file_same(os.path.join(path, local_filename.decode('utf-8')), url)):
+      r = resp
+      with open(os.path.join(path, local_filename.decode('utf-8')), 'wb') as f:
+        for chunk in r.iter_content(chunk_size=1024):
+          if chunk: # filter out keep-alive new chunks
+            f.write(chunk)
+                #f.flush() commented by recommendation from J.F.Sebastian
+    else:
+      print('File are found to be same: {0}'.format(os.path.join(path, local_filename.decode('utf-8'))))
     return local_filename
 
   def _download_files(self, path_prefix, files):
