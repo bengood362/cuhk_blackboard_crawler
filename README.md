@@ -12,14 +12,13 @@ Unless required by applicable law or agreed to in writing, Licensor provides the
 2. During the installation process, please tick "Add python to the PATH", <b>unless you know what you are doing</b>.
 3. Press the green button: [Clone or Download], download as zip, and unzip it to somewhere.
 4. open the somewhere folder, and hold shift and right click, open CMD at this folder.
-5. type `pip install requests` and `python blackboard_crawler.py`.
-6. type in your username and password according to instruction, I am not able to receive your username & password using this script.
+5. type `python main.py`.
+6. type in your username and password according to the interface's instruction, I am not able to receive your username & password using this script.
 
 ## OSX
 
-1. Install python 2.7 
-2. `pip install requests`
-3. `python blackboard_crawler.py`
+1. Install python 2.7
+2. `python main.py`
 
 ## Linux
 
@@ -40,7 +39,6 @@ never
 
 ## (Possibly) updates
 * read file headers(course->section->directories/files->directories/files...) first, instead of read and write together
-* GUI & exe for Windows user
 * write to tmp_download file and rename later, so that keyboard interupt won't break the file writing
 * use XML/ HTML parser instead of regular expression
 * proper unit testing
@@ -48,19 +46,19 @@ never
 
 ## FAQ
 
-Tested environment:  
+Tested environment:
 
 1. OSX & python2
 2. ubuntu & python2
 3. windows7 & python2
 
-Q: Will you add old blackboard?  
-A: No.  
-Q: What if blackboard update and break the script?  
-A: Maybe I will update it or maybe I won't.  
-Q: What if my password leaked using this script?   
-A: I will not compensate for any of your loss. No warranty of any kind is provided  
-Q: What if ......?  
-A: I am not responsible for any of your loss.  
-Q: Why is there are some empty folders?  
-A: Because the lecturer/ tutor/ professor has opened the course but haven't put any materials inside  
+Q: Will you add old blackboard?
+A: No.
+Q: What if blackboard update and break the script?
+A: Maybe I will update it or maybe I won't.
+Q: What if my password leaked using this script?
+A: I will not compensate for any of your loss. No warranty of any kind is provided
+Q: What if ......?
+A: I am not responsible for any of your loss.
+Q: Why is there are some empty folders?
+A: Because the lecturer/ tutor/ professor has opened the course but haven't put any materials inside

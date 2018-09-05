@@ -8,14 +8,16 @@ class Application(Frame):
     self.login_button['text'] = "Login"
     self.login_button['command'] = self.create_login
     self.login_button.pack(ipadx=10, ipady=10)
-    self.debug_button = Button(self)
-    self.debug_button['text'] = "Debug"
-    self.debug_button['command'] = lambda: self._prompt_yesno(title='I am a prompt', text='haha\nThis is line 2', attr='b')
-    self.debug_button2 = Button(self)
-    self.debug_button2['text'] = "Debug2"
-    self.debug_button2['command'] = lambda: self.print_attr('b')
-    self.debug_button.pack(ipadx=10, ipady=10)
-    self.debug_button2.pack(ipadx=10, ipady=10)
+    self.debug_button = ''
+    self.debug_button2 = ''
+    # self.debug_button = Button(self)
+    # self.debug_button['text'] = "Debug"
+    # self.debug_button['command'] = lambda: self._prompt_yesno(title='I am a prompt', text='haha\nThis is line 2', attr='b')
+    # self.debug_button2 = Button(self)
+    # self.debug_button2['text'] = "Debug2"
+    # self.debug_button2['command'] = lambda: self.print_attr('b')
+    # self.debug_button.pack(ipadx=10, ipady=10)
+    # self.debug_button2.pack(ipadx=10, ipady=10)
 
   def create_login(self):
     def login(event=None):
@@ -89,8 +91,10 @@ class Application(Frame):
         print inst
         self.download_unsuccess()
     self.login_button.destroy()
-    self.debug_button.destroy()
-    self.debug_button2.destroy()
+    if(self.debug_button and isinstance(self.debug_button,Button)):
+      self.debug_button.destroy()
+    if(self.debug_button2 and isinstance(self.debug_button2,Button)):
+      self.debug_button2.destroy()
     self.courses = self.bc.get_courses()
     self.course_checkbox = []
     self.course_label = []
