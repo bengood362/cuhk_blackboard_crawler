@@ -2,6 +2,7 @@
 # main.py
 from Tkinter import *
 import BlackboardCrawler
+import inspect
 
 class Application(Frame):
   def initialize(self):
@@ -57,7 +58,7 @@ class Application(Frame):
         self.login_frame.destroy()
         self.login_success()
       except Exception as inst:
-        print inst
+        self.log(inst)
         self.login_popup.title("Failed")
         self.login_popup.message_label['text'] = str(inst)
         self.login_unsuccess()
@@ -105,12 +106,13 @@ class Application(Frame):
         self.bc.download(course_download)
         self.download_success()
       except Exception as inst:
-        print inst
+        self.log(inst)
         self.download_unsuccess(inst)
     for button in self.startup_buttons:
       if(button and isinstance(button,Button)):
         button.destroy()
     del self.startup_buttons
+    self.master.geometry('1000x500')
     self.courses = self.bc.get_courses()
     self.course_checkbox = []
     self.course_label = []
@@ -141,9 +143,16 @@ class Application(Frame):
     self._prompt(text="login unsuccessful")
     self.bc.log('finish login_unsuccess')
 
-  def log(self, message):
-    if(self.bc.flags.VERBOSE):
-      print (message)
+  def log(self, s, t=0, coding='utf-8'):
+    VERBOSE = True if getattr(self,'bc') is None else self.bc.flags.VERBOSE
+    if(VERBOSE or t!=0):
+      curframe = inspect.currentframe()
+      calframe = inspect.getouterframes(curframe, 2)
+      caller = calframe[1][3]
+      if(isinstance(s,unicode)):
+        print u'{0}:{1}'.format(caller.decode(coding), s)
+      else:
+        print '{0}:{1}'.format(caller.decode(coding), s)
 
   def _prompt(self, geometry='200x100', title='Prompt', text='content'):
     self.prompt = Toplevel(self)

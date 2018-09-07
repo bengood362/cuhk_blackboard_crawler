@@ -12,9 +12,6 @@ from getpass import getpass
 import inspect # debugging purpose
 import string
 from sys import platform
-import sys
-reload(sys)
-sys.setdefaultencoding('UTF8')
 from utils import mkdir
 
 class AuthenticationException(Exception):
@@ -77,12 +74,15 @@ class BlackboardCrawler:
   def updatePrefs(self, key, value):
     self.prefs[key]=value
 
-  def log(self, s, t=0):
+  def log(self, s, t=0, coding='utf-8'):
     if(self.flags.VERBOSE or t!=0):
       curframe = inspect.currentframe()
       calframe = inspect.getouterframes(curframe, 2)
       caller = calframe[1][3]
-      print '{0}:{1}'.format(caller, str(s))
+      if(isinstance(s,unicode)):
+        print u'{0}:{1}'.format(caller.decode(coding), s)
+      else:
+        print '{0}:{1}'.format(caller.decode(coding), s)
 
   def title_print(self, s):
     s = '@ {0} @'.format(s)
@@ -196,10 +196,10 @@ class BlackboardCrawler:
     self.log('str local_filename3: {0}'.format(str(local_filename_unquoted)))
     self.log('repr local_filename3: {0}'.format(repr(local_filename_unquoted)))
     self.log('type local_filename3: {0}'.format(type(local_filename_unquoted)))
-    # final_local_filename = local_filename_unquoted.decode(coding,'ignore')
-    final_local_filename = unicode(local_filename_unquoted, 'utf-8')
-    self.log('local_filename4: {0}'.format(final_local_filename))
-    self.log('repr local_filename4: {0}'.format(repr(final_local_filename)))
+    final_local_filename = local_filename_unquoted.decode(coding)
+    # final_local_filename = local_filename_unquoted
+    self.log(u'local_filename4: {0}'.format(final_local_filename))
+    self.log(u'repr local_filename4: {0}'.format(repr(final_local_filename)))
     file_size = resp.headers['Content-Length']
     # if(int(file_size)>=1024*1024*100):
     #   while(1):
@@ -212,22 +212,26 @@ class BlackboardCrawler:
     #       print("Please input only y or n!")
     # NOTE the stream=True parameter
     if(not self.file_same(os.path.join(path, final_local_filename), file_size)):
-      self.log("Downloading {0}".format(final_local_filename))
+      self.log(u"Downloading {0}".format(final_local_filename))
       r = resp
-      with open(os.path.join(path, final_local_filename.decode(coding)), 'wb') as f:
+      with open(os.path.join(path, final_local_filename), 'wb') as f:
         for chunk in r.iter_content(chunk_size=1024):
           if chunk: # filter out keep-alive new chunks
             f.write(chunk)
             f.flush()
             #f.flush() commented by recommendation from J.F.Sebastian
     else:
-      self.log('File are found to be same: {0}'.format(final_local_filename))
+      self.log(u'File are found to be same: {0}'.format(final_local_filename))
     return final_local_filename
 
   def _download_files(self, path_prefix, files):
+    self.log(repr(files))
     for f in files:
       file_url, file_name = f
-      self.log('url: {0} {1}'.format(file_url, file_name))
+      if(isinstance(file_name,unicode)):
+        self.log(u'url: {0} {1}'.format(file_url, file_name))
+      else:
+        self.log(u'url: {0} {1}'.format(file_url, file_name.decode('utf-8')))
       self._download_file(file_url, path_prefix)
 
   def _download_item_from_directories(self, path_prefix, directories, depth):
