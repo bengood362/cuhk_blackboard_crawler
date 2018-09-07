@@ -12,6 +12,9 @@ from getpass import getpass
 import inspect # debugging purpose
 import string
 from sys import platform
+import sys
+reload(sys)
+sys.setdefaultencoding('UTF8')
 from utils import mkdir
 
 class AuthenticationException(Exception):
@@ -20,30 +23,66 @@ class AuthenticationException(Exception):
 class BCFlags(object):
   SLEEP_TIME=1
   MAX_DEPTH=2
-  FOLDER_PREFIX='blackboard'
   VERBOSE=True
   IGNORE_SAME=True
 
-class BCParams(object):
-  pass
+# Just a dict with support of middler & get/setattr
+class BCPrefs(object):
+  no_verification = staticmethod(lambda x: True)
+  url_check = staticmethod(lambda x: re.match('https?://', str(x)) is not None)
+  email_check = staticmethod(lambda x: '@' in str(x))
+  test = lambda x: '@' in x
+  keys = ['folder_prefix', 'blackboard_url', 'email_suffix']
+  prefs_dict = {}
+  def __init__(self):
+    self['folder_prefix']='blackboard'
+    self['blackboard_url']='https://blackboard.cuhk.edu.hk'
+    self['email_suffix']='@link.cuhk.edu.hk'
+  def __setitem__(self, key, value):
+    if(key not in self.keys):
+      # return (False,"{0} not found".format(key)) # Cannot return value in __setitem__...
+      raise KeyError("{0} not found".format(key))
+    if(key is 'blackboard_url' and not BCPrefs.url_check(value)):
+      # return (False,"{0} is not a url".format(value))
+      raise Exception("{0} is not a url".format(key))
+    if(key is 'email_suffix' and not BCPrefs.email_check(value)):
+      # return (False,"{0} is not a email".format(value))
+      raise Exception("{0} is not a email".format(value))
+    self.prefs_dict[key]=value
+    return (True,'')
+  def __getitem__(self, key):
+    return self.prefs_dict[key]
+  def __delitem__(self, key):
+    del self.prefs_dict[key]
+  def __setattr__(self, key, value):
+    self.__setitem__(key, value)
+  def __getattr__(self, key):
+    return self.prefs_dict[key]
+  def __str__(self):
+    return self.prefs_dict.__str__()
+  def __repr__(self):
+    return self.prefs_dict.__str__()
 
 class BlackboardCrawler:
   flags = BCFlags()
+  prefs = BCPrefs()
   def __init__(
     self,
     username,
     password,
-    blackboard_url="https://blackboard.cuhk.edu.hk",
-    email_suffix='@link.cuhk.edu.hk'
   ):
     self.username = username
     self.password = password
-    self.blackboard_url = blackboard_url
-    self.email_suffix = email_suffix
+
+  def updatePrefs(self, key, value):
+    self.prefs[key]=value
 
   def log(self, s, t=0):
     if(self.flags.VERBOSE or t!=0):
-      print (s)
+      curframe = inspect.currentframe()
+      calframe = inspect.getouterframes(curframe, 2)
+      caller = calframe[1][3]
+      print '{0}:{1}'.format(caller, str(s))
 
   def title_print(self, s):
     s = '@ {0} @'.format(s)
@@ -56,7 +95,7 @@ class BlackboardCrawler:
     self._init_bb_session()
     self._login()
     self.userid = self._get_bb_userid()
-    mkdir(self.flags.FOLDER_PREFIX)
+    mkdir(self.prefs.folder_prefix)
 
   # return list of courses
   # [course_id, course_code, display_name]
@@ -64,7 +103,7 @@ class BlackboardCrawler:
     if(not self.userid):
       raise AuthenticationException("Not logged in.")
     self.log("getting courses...")
-    courses_resp = self.sess.get("{0}/learn/api/v1/users/{1}/memberships?expand=course.instructorsMembership,course.effectiveAvailability,course.permissions,courseRole&limit=10000&organization=false".format(self.blackboard_url, self.userid))
+    courses_resp = self.sess.get("{0}/learn/api/v1/users/{1}/memberships?expand=course.instructorsMembership,course.effectiveAvailability,course.permissions,courseRole&limit=10000&organization=false".format(self.prefs.blackboard_url, self.userid))
     courses = courses_resp.json()['results']
     courses_info = []
     for course in courses:
@@ -89,43 +128,44 @@ class BlackboardCrawler:
         return {'size': -1}
       size = os.path.getsize(file_name)
     except Exception as inst:
-      self.log(url)
-      self.log(inst)
+      self.log('err: {0}'.format(inst))
       return {'size': -1}
     return {'size': size}
 
-  def get_metadata_from_url(self, url):
-    try:
-      resp = self.sess.get(url)
-      headers = resp.headers
-      size = int(headers['Content-Length'])
-    except Exception as inst:
-      self.log(url)
-      self.log(inst)
-      return {'size': -1}
-    return {'size': size}
+  # def get_metadata_from_url(self, url):
+  #   try:
+  #     resp = self.sess.get(url)
+  #     headers = resp.headers
+  #     self.log("headers: {0}".format(headers))
+  #     size = int(headers['Content-Length'])
+  #   except Exception as inst:
+  #     self.log('url: {0}'.format(url))
+  #     self.log('err: {0}'.format(inst))
+  #     return {'size': -1}
+  #   return {'size': size}
 
-  def file_same(self, file_name, url):
+  def file_same(self, file_name, file_size):
     if(not self.flags.IGNORE_SAME):
       return False
     metadata_file = self.get_metadata_from_file(file_name)
-    metadata_url = self.get_metadata_from_url(url)
     # DEBUG: return True if size same, return False if not
-    self.log(metadata_file)
-    self.log(metadata_url)
-    if(metadata_file['size']<0 or metadata_url['size']<0):
+    # self.log(metadata_file)
+    # self.log(file_size)
+    metadata_file['size'] = int(metadata_file['size'])
+    file_size = int(file_size)
+    if(metadata_file['size']<0 or file_size<0):
       return False
-    return (metadata_file['size'] == metadata_url['size'])
+    return (metadata_file['size'] == file_size)
 
   def _download(self, courses_info):
     for course_info in courses_info:
       course_id, course_code, course_name = course_info
       sections = self._get_course_sections(course_info)
-      dir_name = mkdir(os.path.join(self.flags.FOLDER_PREFIX, course_name))
+      dir_name = mkdir(os.path.join(self.prefs.folder_prefix, course_name))
       # Ask if the user want to continue download if the folder exists?
       for section in sections:
         section_title = section[1]
-        path_prefix = os.path.join(self.flags.FOLDER_PREFIX, course_name, section_title)
+        path_prefix = os.path.join(self.prefs.folder_prefix, course_name, section_title)
         directories, files = self._get_item_from_section(path_prefix, section)
         self._download_item_from_directories(path_prefix, directories, self.flags.MAX_DEPTH)
         self._download_files(path_prefix, files)
@@ -134,14 +174,32 @@ class BlackboardCrawler:
   def _download_file(self, url, path):
     valid_chars = "-_.()\\/ %s%s" % (string.ascii_letters, string.digits)
     path = ''.join(c for c in path if c in valid_chars)
-    if(self.blackboard_url not in url):
-      url = self.blackboard_url+url
+    path = path.decode('utf-8')
+    if(self.prefs.blackboard_url not in url):
+      url = self.prefs.blackboard_url+url
     resp = self.sess.get(url, stream=True)
+    headers = resp.headers
     url = urllib2.urlparse.unquote(resp.url)
     if(platform == "darwin"):
       url = url.encode('latin1')
-    self.log('{0} {1}'.format(path,url))
-    local_filename = urllib2.urlparse.unquote(url.split('/')[-1])
+    self.log('path: {0}'.format(path))
+    self.log('url: {0}'.format(url))
+    self.log("header: {0}".format(resp.headers))
+    header_content = headers['Content-Disposition']
+    self.log('local_filename1: {0}'.format(repr(header_content)))
+    coding, local_filename = re.findall("[*]=(.+)''(.+)", header_content)[0]
+    self.log('coding: {0}'.format(repr(coding)))
+    self.log('repr local_filename2: {0}'.format(repr(local_filename)))
+    local_filename_unquoted = urllib2.unquote(local_filename)
+    self.debug = local_filename_unquoted
+    self.log('local_filename3: {0}'.format(local_filename_unquoted))
+    self.log('str local_filename3: {0}'.format(str(local_filename_unquoted)))
+    self.log('repr local_filename3: {0}'.format(repr(local_filename_unquoted)))
+    self.log('type local_filename3: {0}'.format(type(local_filename_unquoted)))
+    # final_local_filename = local_filename_unquoted.decode(coding,'ignore')
+    final_local_filename = unicode(local_filename_unquoted, 'utf-8')
+    self.log('local_filename4: {0}'.format(final_local_filename))
+    self.log('repr local_filename4: {0}'.format(repr(final_local_filename)))
     file_size = resp.headers['Content-Length']
     # if(int(file_size)>=1024*1024*100):
     #   while(1):
@@ -153,20 +211,23 @@ class BlackboardCrawler:
     #     else:
     #       print("Please input only y or n!")
     # NOTE the stream=True parameter
-    if(not self.file_same(os.path.join(path, local_filename.decode('utf-8')), url)):
+    if(not self.file_same(os.path.join(path, final_local_filename), file_size)):
+      self.log("Downloading {0}".format(final_local_filename))
       r = resp
-      with open(os.path.join(path, local_filename.decode('utf-8')), 'wb') as f:
+      with open(os.path.join(path, final_local_filename.decode(coding)), 'wb') as f:
         for chunk in r.iter_content(chunk_size=1024):
           if chunk: # filter out keep-alive new chunks
             f.write(chunk)
-                #f.flush() commented by recommendation from J.F.Sebastian
+            f.flush()
+            #f.flush() commented by recommendation from J.F.Sebastian
     else:
-      print('File are found to be same: {0}'.format(os.path.join(path, local_filename.decode('utf-8'))))
-    return local_filename
+      self.log('File are found to be same: {0}'.format(final_local_filename))
+    return final_local_filename
 
   def _download_files(self, path_prefix, files):
     for f in files:
       file_url, file_name = f
+      self.log('url: {0} {1}'.format(file_url, file_name))
       self._download_file(file_url, path_prefix)
 
   def _download_item_from_directories(self, path_prefix, directories, depth):
@@ -174,6 +235,7 @@ class BlackboardCrawler:
       return
     for directory in directories:
       directory_url, directory_title = directory
+      self.log('reading: {0} {1}'.format(directory_url, directory_title))
       new_prefix = os.path.join(path_prefix, directory_title)
       next_directories, files = self._get_item_from_section(new_prefix, directory)
       self._download_files(new_prefix, files)
@@ -181,11 +243,11 @@ class BlackboardCrawler:
 
   def _get_item_from_section(self, path_prefix, section):
     section_url, section_name = section
-    self.log("--reading sections: {0}".format(section_name))
+    self.log("----reading sections: {0}".format(section_name))
     dir_name = mkdir(path_prefix)
     # path_prefix = dir_name
-    if(self.blackboard_url not in section_url):
-      section_url = self.blackboard_url+section_url
+    if(self.prefs.blackboard_url not in section_url):
+      section_url = self.prefs.blackboard_url+section_url
     course_section_resp = self.sess.get(section_url)
     directories = re.findall('<a href="(/webapps/blackboard/content/listContent.jsp?.+?)"><span style=".+?">(.+?)</span>', course_section_resp.text)
     files = re.findall('<a href="(/bbcswebdav.+?)".+?">.+?">(.+)</span>', course_section_resp.text)
@@ -207,7 +269,7 @@ class BlackboardCrawler:
   def _get_course_sections(self, course_info):
     course_id, course_code, course_name = course_info
     self.log("reading course: {0}".format(course_name))
-    course_url = "{1}/webapps/blackboard/execute/courseMain?course_id={0}".format(course_id, self.blackboard_url)
+    course_url = "{1}/webapps/blackboard/execute/courseMain?course_id={0}".format(course_id, self.prefs.blackboard_url)
     course_url_resp = self.sess.get(course_url)
     section_raw = re.findall('<hr>(.+?)<hr>',course_url_resp.text)[0]
     sections = re.findall('<a href="(/webapps/blackboard/content/listContent.jsp?.+?)".+?">.+?">(.+?)</span>', section_raw)
@@ -218,7 +280,7 @@ class BlackboardCrawler:
     # fake header, otherwise they wont care
     sess.headers['User-Agent']='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'
     # go to starting page
-    blackboard_main_resp = sess.get(self.blackboard_url)
+    blackboard_main_resp = sess.get(self.prefs.blackboard_url)
     next_url_1 = re.findall('url=(.+)', blackboard_main_resp.text)[0]
     # redirected to login page
     next_url_1 = urllib2.urlparse.unquote(next_url_1)
@@ -228,7 +290,7 @@ class BlackboardCrawler:
 
   def _login(self):
     if '@' not in self.username:
-      self.username = self.username + self.email_suffix
+      self.username = self.username + self.prefs.email_suffix
     form_auth_payload={
       'UserName': self.username,
       'Password': self.password,
@@ -244,7 +306,7 @@ class BlackboardCrawler:
     self.log("logged in...")
 
   def _get_bb_userid(self):
-    course_url = '{0}/ultra/course'.format(self.blackboard_url)
+    course_url = '{0}/ultra/course'.format(self.prefs.blackboard_url)
     course_resp = self.sess.get(course_url)
     userid = re.findall('"id":"(.+?)"', course_resp.text)[0]
     return userid
@@ -252,10 +314,6 @@ class BlackboardCrawler:
   def set_auth(self, u, p):
     self.username = u
     self.password = p
-
-  def set_university(self, blackboard_url, email_suffix):
-    self.blackboard_url = blackboard_url
-    self.email_suffix = email_suffix
 
   def setFlags():
     pass

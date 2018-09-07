@@ -1,3 +1,4 @@
+#!coding: utf-8
 # main.py
 from Tkinter import *
 import BlackboardCrawler
@@ -8,22 +9,38 @@ class Application(Frame):
     self.login_button['text'] = "Login"
     self.login_button['command'] = self.create_login
     self.login_button.pack(ipadx=10, ipady=10)
+    self.option_button = Button(self)
+    self.option_button['text'] = "Options"
+    self.option_button['command'] = self.create_option
+    self.option_button.pack(ipadx=10, ipady=10)
     self.debug_button = ''
     self.debug_button2 = ''
+    self.blackboard_options_update = {'folder_prefix': 'blackboard', 'blackboard_url': 'https://blackboard.cuhk.edu.hk', 'email_suffix': '@link.cuhk.edu.hk'}
     # self.debug_button = Button(self)
     # self.debug_button['text'] = "Debug"
     # self.debug_button['command'] = lambda: self._prompt_yesno(title='I am a prompt', text='haha\nThis is line 2', attr='b')
+    # self.debug_button.pack(ipadx=10, ipady=10)
     # self.debug_button2 = Button(self)
     # self.debug_button2['text'] = "Debug2"
-    # self.debug_button2['command'] = lambda: self.print_attr('b')
-    # self.debug_button.pack(ipadx=10, ipady=10)
+    # self.debug_button2['command'] = lambda: self.print_attr('blackboard_options_update')
     # self.debug_button2.pack(ipadx=10, ipady=10)
+    self.startup_buttons = [self.login_button, self.option_button, self.debug_button, self.debug_button2]
+
+  def create_option(self):
+    self._prompt_form(
+      keys=BlackboardCrawler.BCPrefs.keys,
+      default_vals=map(lambda x: self.blackboard_options_update[x], BlackboardCrawler.BCPrefs.keys),
+      yes_handler=lambda result: setattr(self, 'blackboard_options_update', result)
+    )
+    print(self.blackboard_options_update)
 
   def create_login(self):
     def login(event=None):
       username = self.login_frame.username_entry.get()
       password = self.login_frame.password_entry.get()
       self.bc = BlackboardCrawler.BlackboardCrawler(username, password)
+      for (key,val) in self.blackboard_options_update.items():
+        self.bc.updatePrefs(key, val)
       self.login_popup = Toplevel()
       self.login_popup.geometry('200x100')
       self.login_popup.grab_set()
@@ -76,8 +93,8 @@ class Application(Frame):
   def download_success(self):
     self._prompt(title="Success", text='Download successfully')
 
-  def download_unsuccess(self):
-    self._prompt(title="Unsuccess", text='Download failed')
+  def download_unsuccess(self, reason=''):
+    self._prompt(title="Unsuccess", text='Download failed: {0}'.format(reason))
 
   def login_success(self):
     self.bc.log('login_success')
@@ -89,12 +106,11 @@ class Application(Frame):
         self.download_success()
       except Exception as inst:
         print inst
-        self.download_unsuccess()
-    self.login_button.destroy()
-    if(self.debug_button and isinstance(self.debug_button,Button)):
-      self.debug_button.destroy()
-    if(self.debug_button2 and isinstance(self.debug_button2,Button)):
-      self.debug_button2.destroy()
+        self.download_unsuccess(inst)
+    for button in self.startup_buttons:
+      if(button and isinstance(button,Button)):
+        button.destroy()
+    del self.startup_buttons
     self.courses = self.bc.get_courses()
     self.course_checkbox = []
     self.course_label = []
@@ -125,6 +141,10 @@ class Application(Frame):
     self._prompt(text="login unsuccessful")
     self.bc.log('finish login_unsuccess')
 
+  def log(self, message):
+    if(self.bc.flags.VERBOSE):
+      print (message)
+
   def _prompt(self, geometry='200x100', title='Prompt', text='content'):
     self.prompt = Toplevel(self)
     self.prompt.geometry(geometry)
@@ -140,10 +160,6 @@ class Application(Frame):
     self.prompt.grab_set()
     self.prompt.text_label.pack(ipadx=10, ipady=10)
     self.prompt.confirm_button.pack()
-
-  def log(self, message):
-    if(self.bc.flags.VERBOSE):
-      print (message)
 
   def _prompt_yesno(self, geometry='400x300', title='Prompt', text='content', yes_text='Yes', no_text='No', attr='last_choice'):
     self.prompt_yesno = Toplevel(self)
@@ -165,8 +181,41 @@ class Application(Frame):
     self.prompt_yesno.yes_button.grid(row=1, column=0)
     self.prompt_yesno.no_button.grid(row=1, column=1)
 
+  def _prompt_form(self, geometry='400x300', title='Prompt Form', keys=['test1', 'test2'], default_vals=['test_val1', 'test_val2'], yes_text='Confirm', no_text='Cancel', yes_handler=None, no_handler=None):
+    self.prompt_form = Toplevel(self)
+    self.prompt_form.geometry(geometry)
+    self.prompt_form.title(title)
+    textlabels = []
+    entries = []
+    for i in range(len(keys)):
+      key = keys[i]
+      default_val = default_vals[i]
+      tl = Label(self.prompt_form)
+      tl['text'] = key
+      en=Entry(self.prompt_form)
+      en.insert(END, default_val)
+      tl.grid(row=i, column=0)
+      en.grid(row=i, column=1)
+      textlabels.append(tl)
+      entries.append(en)
+    def get_result(keys, entries):
+      result = {}
+      for (key,en) in zip(keys, entries):
+        result[key]=en.get()
+      return result
+    self.prompt_form.yes_button = Button(self.prompt_form)
+    self.prompt_form.yes_button['text'] = yes_text
+    self.prompt_form.yes_button['command'] = lambda: [self.prompt_form.grab_release(), yes_handler(get_result(keys, entries)) if yes_handler is not None else None, self.prompt_form.destroy()]
+    self.prompt_form.no_button = Button(self.prompt_form)
+    self.prompt_form.no_button['text'] = no_text
+    self.prompt_form.no_button['command'] = lambda: [self.prompt_form.grab_release(), no_handler(get_result(keys, entries)) if no_handler is not None else None, self.prompt_form.destroy()]
+
+    self.prompt_form.grab_set()
+    self.prompt_form.yes_button.grid(row=i+1, column=0)
+    self.prompt_form.no_button.grid(row=i+1, column=1)
+
   def print_attr(self, attr):
-    self.bc.log(getattr(self, attr))
+    print getattr(self, attr)
 
   def __init__(self, master):
     Frame.__init__(self, master)
