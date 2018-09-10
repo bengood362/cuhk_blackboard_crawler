@@ -100,7 +100,7 @@ class Application(Frame):
   def login_success(self):
     self.bc.log('login_success')
     def download(event=None):
-      self.bc.log("start downloading...")
+      self.bc.log("download clicked")
       course_download = filter(lambda (i, v): self.course_bool_var[i].get(), list(enumerate(self.courses)))
       try:
         self.bc.download(course_download)
@@ -111,6 +111,10 @@ class Application(Frame):
     for button in self.startup_buttons:
       if(button and isinstance(button,Button)):
         button.destroy()
+    def select_all(event=None):
+      self.bc.log("select all clicked")
+      for cbv in self.course_bool_var:
+        cbv.set(1)
     del self.startup_buttons
     self.master.geometry('1000x500')
     self.courses = self.bc.get_courses()
@@ -136,6 +140,10 @@ class Application(Frame):
     self.download_button['text'] = 'Download'
     self.download_button['command'] = download
     self.download_button.grid(row=(i+1), column=0)
+    self.select_all_button = Button(self)
+    self.select_all_button['text'] = 'Select All'
+    self.select_all_button['command'] = select_all
+    self.select_all_button.grid(row=(i+1), column=1)
     self.bc.log('finish login_success')
 
   def login_unsuccess(self):
