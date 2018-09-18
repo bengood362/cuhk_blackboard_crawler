@@ -99,6 +99,13 @@ class Application(Frame):
 
   def login_success(self):
     self.bc.log('login_success')
+    for button in self.startup_buttons:
+      if(button and isinstance(button,Button)):
+        button.destroy()
+    del self.startup_buttons
+    self.show_courses()
+
+  def show_courses(self):
     def download(event=None):
       self.bc.log("download clicked")
       course_download = filter(lambda (i, v): self.course_bool_var[i].get(), list(enumerate(self.courses)))
@@ -108,14 +115,17 @@ class Application(Frame):
       except Exception as inst:
         self.log(inst)
         self.download_unsuccess(inst)
-    for button in self.startup_buttons:
-      if(button and isinstance(button,Button)):
-        button.destroy()
     def select_all(event=None):
       self.bc.log("select all clicked")
       for cbv in self.course_bool_var:
         cbv.set(1)
-    del self.startup_buttons
+    def select_this_sem(event=None):
+      for i in range(len(self.course_label)):
+        cl = self.course_label[i]
+        text = cl['text']
+        if('2018R1' in text):
+          cbv = self.course_bool_var[i]
+          cbv.set(1)
     self.master.geometry('1000x500')
     self.courses = self.bc.get_courses()
     self.course_checkbox = []
@@ -144,6 +154,11 @@ class Application(Frame):
     self.select_all_button['text'] = 'Select All'
     self.select_all_button['command'] = select_all
     self.select_all_button.grid(row=(i+1), column=1)
+    self.select_this_sem_button = Button(self)
+    self.select_this_sem_button['text'] = 'Select this sem'
+    self.select_this_sem_button['command'] = select_this_sem
+    self.select_this_sem_button.grid(row=(i+1), column=2)
+
     self.bc.log('finish login_success')
 
   def login_unsuccess(self):
