@@ -17,24 +17,49 @@ from utils import mkdir
 class AuthenticationException(Exception):
   pass
 
+# Only developer should change it?
 class BCFlags(object):
   SLEEP_TIME=1
   MAX_DEPTH=2
   VERBOSE=True
   IGNORE_SAME=True
+  # IGNORE_SAME: ignore same file
 
 # Just a dict with support of middler & get/setattr
 class BCPrefs(object):
+  @staticmethod
+  def default_dict():
+    return {'folder_prefix': 'blackboard', 'blackboard_url': 'https://blackboard.cuhk.edu.hk', 'email_suffix': '@link.cuhk.edu.hk', 'folder_name_style': 'CC_ONLY'}
   no_verification = staticmethod(lambda x: True)
   url_check = staticmethod(lambda x: re.match('https?://', str(x)) is not None)
   email_check = staticmethod(lambda x: '@' in str(x))
+  folder_style = ['CC_ONLY', 'FULL', 'TERM_AND_CC']
+  folder_name_check = staticmethod(lambda x: x in BCPrefs.folder_style)
   test = lambda x: '@' in x
-  keys = ['folder_prefix', 'blackboard_url', 'email_suffix']
+  keys = ['folder_prefix', 'blackboard_url', 'email_suffix', 'folder_name_style']
   prefs_dict = {}
+  @staticmethod
+  def get_option_vals(key):
+    if(key is 'folder_name_style'):
+      return BCPrefs.folder_style
+    return []
+  @staticmethod
+  def get_pref_type(key):
+    if(key is 'folder_prefix'):
+      return 'text'
+    elif(key is 'blackboard_url'):
+      return 'text'
+    elif(key is 'email_suffix'):
+      return 'text'
+    elif(key is 'folder_name_style'):
+      return 'option'
+    else:
+      return 'text'
   def __init__(self):
     self['folder_prefix']='blackboard'
     self['blackboard_url']='https://blackboard.cuhk.edu.hk'
     self['email_suffix']='@link.cuhk.edu.hk'
+    self['folder_name_style']='CC_ONLY'
   def __setitem__(self, key, value):
     if(key not in self.keys):
       # return (False,"{0} not found".format(key)) # Cannot return value in __setitem__...
@@ -45,8 +70,10 @@ class BCPrefs(object):
     if(key is 'email_suffix' and not BCPrefs.email_check(value)):
       # return (False,"{0} is not a email".format(value))
       raise Exception("{0} is not a email".format(value))
+    if(key is 'folder_name_style' and not BCPrefs.folder_name_check(value)):
+      raise Exception("{0} is not a folder style setting".format(value))
     self.prefs_dict[key]=value
-    return (True,'')
+    # return (True,'')
   def __getitem__(self, key):
     return self.prefs_dict[key]
   def __delitem__(self, key):
@@ -157,15 +184,32 @@ class BlackboardCrawler:
       return False
     return (metadata_file['size'] == file_size)
 
+  def make_course_dir(self, course_info):
+    course_id, course_code, course_name = course_info
+    #course_code: 2018R1-CSCI4180
+    if(self.prefs.folder_name_style == 'CC_ONLY'):
+      course_code = course_code.split('-')[1]
+      if(not reduce(lambda x,y: x and y, map(lambda x: not x.isdigit(), course_code))):
+        while(not course_code[-1].isdigit()):
+          course_code = course_code[:-1]
+      dir_name = mkdir(os.path.join(self.prefs.folder_prefix, course_code))
+    elif(self.prefs.folder_name_style == 'FULL'):
+      dir_name = mkdir(os.path.join(self.prefs.folder_prefix, course_name))
+    elif(self.prefs.folder_name_style == 'TERM_AND_CC'):
+      dir_name = mkdir(os.path.join(self.prefs.folder_prefix, course_code))
+    else:
+      dir_name = mkdir(os.path.join(self.prefs.folder_prefix, course_code))
+    return dir_name
+
   def _download(self, courses_info):
     for course_info in courses_info:
       course_id, course_code, course_name = course_info
       sections = self._get_course_sections(course_info)
-      dir_name = mkdir(os.path.join(self.prefs.folder_prefix, course_name))
+      dirname = self.make_course_dir(course_info)
       # Ask if the user want to continue download if the folder exists?
       for section in sections:
         section_title = section[1]
-        path_prefix = os.path.join(self.prefs.folder_prefix, course_name, section_title)
+        path_prefix = os.path.join(dirname, section_title)
         directories, files = self._get_item_from_section(path_prefix, section)
         self._download_item_from_directories(path_prefix, directories, self.flags.MAX_DEPTH)
         self._download_files(path_prefix, files)

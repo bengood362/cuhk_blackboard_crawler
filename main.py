@@ -5,6 +5,7 @@ import BlackboardCrawler
 import inspect
 
 class Application(Frame):
+  debug=False
   def initialize(self):
     self.login_button = Button(self)
     self.login_button['text'] = "Login"
@@ -16,11 +17,11 @@ class Application(Frame):
     self.option_button.pack(ipadx=10, ipady=10)
     self.debug_button = ''
     self.debug_button2 = ''
-    self.blackboard_options_update = {'folder_prefix': 'blackboard', 'blackboard_url': 'https://blackboard.cuhk.edu.hk', 'email_suffix': '@link.cuhk.edu.hk'}
-    # self.debug_button = Button(self)
-    # self.debug_button['text'] = "Debug"
-    # self.debug_button['command'] = lambda: self._prompt_yesno(title='I am a prompt', text='haha\nThis is line 2', attr='b')
-    # self.debug_button.pack(ipadx=10, ipady=10)
+    self.blackboard_options_update = BlackboardCrawler.BCPrefs.default_dict()
+    self.debug_button = Button(self)
+    self.debug_button['text'] = "Debug"
+    self.debug_button['command'] = lambda: self._prompt_option(title='I am a prompt', text='haha\nThis is line 2', keys=['course code only', 'term and course code', 'full'], default_vals=['CC_ONLY', 'TERM_AND_CC', 'FULL'])
+    self.debug_button.pack(ipadx=10, ipady=10)
     # self.debug_button2 = Button(self)
     # self.debug_button2['text'] = "Debug2"
     # self.debug_button2['command'] = lambda: self.print_attr('blackboard_options_update')
@@ -28,8 +29,12 @@ class Application(Frame):
     self.startup_buttons = [self.login_button, self.option_button, self.debug_button, self.debug_button2]
 
   def create_option(self):
+    # print keys
+    # print types
     self._prompt_form(
       keys=BlackboardCrawler.BCPrefs.keys,
+      types=map(lambda x: BlackboardCrawler.BCPrefs.get_pref_type(x), BlackboardCrawler.BCPrefs.keys),
+      option_vals=map(lambda x: BlackboardCrawler.BCPrefs.get_option_vals(x), BlackboardCrawler.BCPrefs.keys),
       default_vals=map(lambda x: self.blackboard_options_update[x], BlackboardCrawler.BCPrefs.keys),
       yes_handler=lambda result: setattr(self, 'blackboard_options_update', result)
     )
@@ -47,7 +52,6 @@ class Application(Frame):
       self.login_popup.grab_set()
       self.login_popup.confirm_button = Button(self.login_popup)
       self.login_popup.confirm_button['text'] = 'Continue'
-      self.login_popup.confirm_button['command'] = lambda: [self.login_popup.grab_release(), self.login_popup.destroy(), self.login_frame.destroy()]
       self.login_popup.message_label = Label(self.login_popup)
       self.login_popup.message_label.grid(row=0, column=0)
       self.login_popup.confirm_button.grid(row=1, column=0)
@@ -55,12 +59,15 @@ class Application(Frame):
         self.bc.login()
         self.login_popup.title("Success")
         self.login_popup.message_label['text'] = "Login successfully"
+        self.login_popup.confirm_button['command'] = lambda: [self.login_popup.grab_release(), self.login_popup.destroy(), self.login_frame.destroy()]
         self.login_frame.destroy()
         self.login_success()
       except Exception as inst:
         self.log(inst)
         self.login_popup.title("Failed")
-        self.login_popup.message_label['text'] = str(inst)
+        # self.login_popup.message_label['text'] = str(inst)
+        self.login_popup.message_label['text'] = "Login unsuccessful"
+        self.login_popup.confirm_button['command'] = lambda: [self.login_popup.grab_release(), self.login_popup.destroy()]
         self.login_unsuccess()
 
     self.login_frame = Toplevel(self)
@@ -163,7 +170,7 @@ class Application(Frame):
 
   def login_unsuccess(self):
     self.bc.log('login_unsuccess')
-    self._prompt(text="login unsuccessful")
+    # self._prompt(title="Error", text="login unsuccessful")
     self.bc.log('finish login_unsuccess')
 
   def log(self, s, t=0, coding='utf-8'):
@@ -213,38 +220,82 @@ class Application(Frame):
     self.prompt_yesno.yes_button.grid(row=1, column=0)
     self.prompt_yesno.no_button.grid(row=1, column=1)
 
-  def _prompt_form(self, geometry='400x300', title='Prompt Form', keys=['test1', 'test2'], default_vals=['test_val1', 'test_val2'], yes_text='Confirm', no_text='Cancel', yes_handler=None, no_handler=None):
+  def _prompt_form(self,
+    geometry='600x400',
+    title='Prompt Form',
+    keys=['test1', 'test2', 'test3'],
+    default_vals=['test_val1', 'test_val2', 'test_val3'],
+    option_vals=[[],[],['test_options1', 'test_options2']],
+    types=['text', 'text', 'option'],
+    yes_text='Confirm', no_text='Cancel',
+    yes_handler=None, no_handler=None
+  ):
     self.prompt_form = Toplevel(self)
     self.prompt_form.geometry(geometry)
     self.prompt_form.title(title)
     textlabels = []
     entries = []
-    for i in range(len(keys)):
-      key = keys[i]
-      default_val = default_vals[i]
+    variables = []
+    for (i,(key, default_val, field_type, option_val)) in enumerate(zip(keys, default_vals, types, option_vals)):
       tl = Label(self.prompt_form)
       tl['text'] = key
-      en=Entry(self.prompt_form)
-      en.insert(END, default_val)
+      target_var = StringVar(self.prompt_form)
+      if(field_type == 'text'):
+        en = Entry(self.prompt_form, textvariable=target_var)
+        en.insert(END, default_val)
+        target = en
+      elif(field_type == 'option'):
+        if(not isinstance(option_val, list)):
+          raise Exception("option value is not a list: {0}".format(option_val))
+        om = OptionMenu(self.prompt_form, target_var, *option_val)
+        om.config(width=20)
+        target_var.set(default_val)
+        target = om
       tl.grid(row=i, column=0)
-      en.grid(row=i, column=1)
+      target.grid(row=i, column=1)
+
       textlabels.append(tl)
-      entries.append(en)
-    def get_result(keys, entries):
+      entries.append(target)
+      variables.append(target_var)
+    def get_result(keys, entries, variables):
       result = {}
-      for (key,en) in zip(keys, entries):
-        result[key]=en.get()
+      for (key,en,var) in zip(keys, entries, variables):
+        result[key] = var.get()
       return result
     self.prompt_form.yes_button = Button(self.prompt_form)
     self.prompt_form.yes_button['text'] = yes_text
-    self.prompt_form.yes_button['command'] = lambda: [self.prompt_form.grab_release(), yes_handler(get_result(keys, entries)) if yes_handler is not None else None, self.prompt_form.destroy()]
+    self.prompt_form.yes_button['command'] = lambda: [self.prompt_form.grab_release(), yes_handler(get_result(keys, entries, variables)) if yes_handler is not None else None, self.prompt_form.destroy()]
     self.prompt_form.no_button = Button(self.prompt_form)
     self.prompt_form.no_button['text'] = no_text
-    self.prompt_form.no_button['command'] = lambda: [self.prompt_form.grab_release(), no_handler(get_result(keys, entries)) if no_handler is not None else None, self.prompt_form.destroy()]
+    self.prompt_form.no_button['command'] = lambda: [self.prompt_form.grab_release(), no_handler(get_result(keys, entries, variables)) if no_handler is not None else None, self.prompt_form.destroy()]
 
     self.prompt_form.grab_set()
     self.prompt_form.yes_button.grid(row=i+1, column=0)
     self.prompt_form.no_button.grid(row=i+1, column=1)
+
+  def _prompt_option(self, geometry='200x100', title='Prompt option', text='content', keys=['test1', 'test2'], default_vals=['test_val1', 'test_val2'], yes_text='Confirm', no_text='Cancel', yes_handler=None, no_handler=None, width=20):
+    self.prompt_option = Toplevel(self)
+    self.prompt_option.geometry(geometry)
+    self.prompt_option.title(title)
+
+    def print_it(event):
+      print(self.prompt_option.option_var.get())
+
+    self.prompt_option.option_var = StringVar(self.prompt_option)
+    self.prompt_option.option_menu = OptionMenu(self.prompt_option, self.prompt_option.option_var, *keys, command=print_it)
+    self.prompt_option.option_menu.config(width=width)
+    self.prompt_option.yes_button = Button(self.prompt_option)
+    self.prompt_option.yes_button['text'] = yes_text
+    self.prompt_option.yes_button['command'] = lambda: [self.prompt_option.grab_release(), yes_handler(default_vals[keys.index(self.prompt_option.option_var.get())]) if yes_handler is not None else None, print_it(), self.prompt_form.destroy()]
+
+    self.prompt_option.no_button = Button(self.prompt_option)
+    self.prompt_option.no_button['text'] = no_text
+    self.prompt_option.no_button['command'] = lambda: [self.prompt_option.grab_release(), no_handler(default_vals[keys.index(self.prompt_option.option_var.get())]) if no_handler is not None else None, print_it(), self.prompt_form.destroy()]
+
+    self.prompt_option.option_menu.grid(row=0, column=0)
+    self.prompt_option.yes_button.grid(row=1, column=0)
+    self.prompt_option.no_button.grid(row=1, column=1)
+    self.prompt_option.grab_set()
 
   def print_attr(self, attr):
     print getattr(self, attr)
