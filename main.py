@@ -133,6 +133,8 @@ class Application(Frame):
         if('2018R1' in text):
           cbv = self.course_bool_var[i]
           cbv.set(1)
+        else:
+          cbv.set(0)
     self.master.geometry('1000x500')
     self.courses = self.bc.get_courses()
     self.course_checkbox = []
