@@ -130,8 +130,8 @@ class Application(Frame):
       for i in range(len(self.course_label)):
         cl = self.course_label[i]
         text = cl['text']
+        cbv = self.course_bool_var[i]
         if('2018R1' in text):
-          cbv = self.course_bool_var[i]
           cbv.set(1)
         else:
           cbv.set(0)
