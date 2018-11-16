@@ -230,20 +230,20 @@ class BlackboardCrawler:
     self.log('url: {0}'.format(url))
     self.log("header: {0}".format(resp.headers))
     header_content = headers['Content-Disposition']
-    self.log('local_filename1: {0}'.format(repr(header_content)))
+    # self.log('local_filename1: {0}'.format(repr(header_content)))
     coding, local_filename = re.findall("[*]=(.+)''(.+)", header_content)[0]
-    self.log('coding: {0}'.format(repr(coding)))
-    self.log('repr local_filename2: {0}'.format(repr(local_filename)))
+    # self.log('coding: {0}'.format(repr(coding)))
+    # self.log('repr local_filename2: {0}'.format(repr(local_filename)))
     local_filename_unquoted = urllib2.unquote(local_filename)
     self.debug = local_filename_unquoted
-    self.log('local_filename3: {0}'.format(local_filename_unquoted))
-    self.log('str local_filename3: {0}'.format(str(local_filename_unquoted)))
-    self.log('repr local_filename3: {0}'.format(repr(local_filename_unquoted)))
-    self.log('type local_filename3: {0}'.format(type(local_filename_unquoted)))
+    # self.log('local_filename3: {0}'.format(local_filename_unquoted))
+    # self.log('str local_filename3: {0}'.format(str(local_filename_unquoted)))
+    # self.log('repr local_filename3: {0}'.format(repr(local_filename_unquoted)))
+    # self.log('type local_filename3: {0}'.format(type(local_filename_unquoted)))
     final_local_filename = local_filename_unquoted.decode(coding)
     # final_local_filename = local_filename_unquoted
-    self.log(u'local_filename4: {0}'.format(final_local_filename))
-    self.log(u'repr local_filename4: {0}'.format(repr(final_local_filename)))
+    # self.log(u'local_filename4: {0}'.format(final_local_filename))
+    # self.log(u'repr local_filename4: {0}'.format(repr(final_local_filename)))
     file_size = resp.headers['Content-Length']
     # if(int(file_size)>=1024*1024*100):
     #   while(1):

@@ -146,7 +146,10 @@ class Application(Frame):
     self.grid_columnconfigure(1, weight=0)
     self.grid_columnconfigure(1, weight=1)
     for i in range(len(self.courses)):
-      self.bc.log('rendering {0}'.format(self.courses[i][2]))
+      if(isinstance(self.courses[i][2],unicode)):
+        self.bc.log('rendering {0}'.format(self.courses[i][2]))
+      else:
+        self.bc.log('rendering {0}'.format(self.courses[i][2]).decode('utf-8'))
       course = self.courses[i]
       (course_id, course_code, display_name) = course
       bool_var = BooleanVar()
