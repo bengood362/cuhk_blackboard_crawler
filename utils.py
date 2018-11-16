@@ -3,9 +3,9 @@ import uuid
 import string
 
 def mkdir(name):
-  valid_chars = "-_.()\\/ %s%s" % (string.ascii_letters, string.digits)
+  invalid_chars = '/:*?"<>|'
   try:
-    name = ''.join(c for c in name if c in valid_chars)
+    name = ''.join(c for c in name if c not in invalid_chars)
     if(os.path.exists(name)):
       pass # dir exists
     else:
@@ -19,7 +19,7 @@ def mkdir(name):
 
 def download_file(url, path, sess):
   try:
-    path = ''.join(c for c in path if c in valid_chars)
+    path = ''.join(c for c in path if c not in invalid_chars)
     if(blackboard_url not in url):
       url = blackboard_url+url
     resp = sess.get(url, stream=True)
@@ -40,7 +40,7 @@ def download_file(url, path, sess):
           print("Please input only y or n!")
     # NOTE the stream=True parameter
     r = resp
-    with open(os.path.join(path, local_filename.decode('utf-8')), 'wb') as f:
+    with open(os.path.join(path, local_filename.decode('utf-8')).encode('utf-8'), 'wb') as f:
       for chunk in r.iter_content(chunk_size=1024):
         if chunk: # filter out keep-alive new chunks
           f.write(chunk)
