@@ -107,9 +107,9 @@ class BlackboardCrawler:
       calframe = inspect.getouterframes(curframe, 2)
       caller = calframe[1][3]
       if(isinstance(s,unicode)):
-        print u'{0}:{1}'.format(caller.decode(coding), s)
+        print(u'{0}:{1}'.format(caller.decode(coding), s))
       else:
-        print '{0}:{1}'.format(caller.decode(coding), s)
+        print('{0}:{1}'.format(caller.decode(coding), s))
 
   def title_print(self, s):
     s = '@ {0} @'.format(s)

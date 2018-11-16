@@ -115,7 +115,10 @@ class Application(Frame):
   def show_courses(self):
     def download(event=None):
       self.bc.log("download clicked")
-      course_download = filter(lambda (i, v): self.course_bool_var[i].get(), list(enumerate(self.courses)))
+      def selected(i, v):
+        return self.course_bool_var[i].get()
+      print (list(enumerate(self.courses))[0])
+      course_download = filter(lambda x: selected(*x), list(enumerate(self.courses)))
       try:
         self.bc.download(course_download)
         self.download_success()
@@ -182,9 +185,9 @@ class Application(Frame):
       calframe = inspect.getouterframes(curframe, 2)
       caller = calframe[1][3]
       if(isinstance(s,unicode)):
-        print u'{0}:{1}'.format(caller.decode(coding), s)
+        print(u'{0}:{1}'.format(caller.decode(coding), s))
       else:
-        print '{0}:{1}'.format(caller.decode(coding), s)
+        print('{0}:{1}'.format(caller.decode(coding), s))
 
   def _prompt(self, geometry='200x100', title='Prompt', text='content'):
     self.prompt = Toplevel(self)
@@ -300,7 +303,7 @@ class Application(Frame):
     self.prompt_option.grab_set()
 
   def print_attr(self, attr):
-    print getattr(self, attr)
+    print(getattr(self, attr))
 
   def __init__(self, master):
     Frame.__init__(self, master)
