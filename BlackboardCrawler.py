@@ -107,9 +107,9 @@ class BlackboardCrawler:
       calframe = inspect.getouterframes(curframe, 2)
       caller = calframe[1][3]
       if(isinstance(s,unicode)):
-        print(u'{0}:{1}'.format(caller.decode(coding), s))
+        print(u'{0}:{1}'.format(caller.decode(coding), s).encode(coding))
       else:
-        print('{0}:{1}'.format(caller.decode(coding), s))
+        print(u'{0}:{1}'.format(caller.decode(coding), s))
 
   def title_print(self, s):
     s = '@ {0} @'.format(s)
@@ -216,9 +216,8 @@ class BlackboardCrawler:
         time.sleep(self.flags.SLEEP_TIME)
 
   def _download_file(self, url, path):
-    valid_chars = "-_.()\\/ %s%s" % (string.ascii_letters, string.digits)
-    path = ''.join(c for c in path if c in valid_chars)
-    path = path.decode('utf-8')
+    invalid_chars = '/:*?"<>|'
+    path = ''.join(c for c in path if c not in invalid_chars)
     if(self.prefs.blackboard_url not in url):
       url = self.prefs.blackboard_url+url
     resp = self.sess.get(url, stream=True)
@@ -226,7 +225,10 @@ class BlackboardCrawler:
     url = urllib2.urlparse.unquote(resp.url)
     if(platform == "darwin"):
       url = url.encode('latin1')
-    self.log('path: {0}'.format(path))
+    if(isinstance(path,unicode)):
+      self.log(u'path: {0}'.format(path))
+    else:
+      self.log(u'path: {0}'.format(path.decode('utf-8')))
     self.log('url: {0}'.format(url))
     self.log("header: {0}".format(resp.headers))
     header_content = headers['Content-Disposition']
@@ -291,7 +293,10 @@ class BlackboardCrawler:
 
   def _get_item_from_section(self, path_prefix, section):
     section_url, section_name = section
-    self.log("----reading sections: {0}".format(section_name))
+    if(isinstance(section_name,unicode)):
+      self.log(u'----reading sections: {0}'.format(section_name))
+    else:
+      self.log(u'----reading sections: {0}'.format(section_name.decode('utf-8')))
     dir_name = mkdir(path_prefix)
     # path_prefix = dir_name
     if(self.prefs.blackboard_url not in section_url):
@@ -316,7 +321,10 @@ class BlackboardCrawler:
 
   def _get_course_sections(self, course_info):
     course_id, course_code, course_name = course_info
-    self.log("reading course: {0}".format(course_name))
+    if(isinstance(course_name,unicode)):
+      self.log(u'reading course: {0}'.format(course_name))
+    else:
+      self.log(u'reading course: {0}'.format(course_name.decode('utf-8')))
     course_url = "{1}/webapps/blackboard/execute/courseMain?course_id={0}".format(course_id, self.prefs.blackboard_url)
     course_url_resp = self.sess.get(course_url)
     section_raw = re.findall('<hr>(.+?)<hr>',course_url_resp.text)[0]
