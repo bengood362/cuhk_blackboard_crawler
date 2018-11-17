@@ -11,7 +11,7 @@ from getpass import getpass
 # XML parser is not used because the fucking &ndash;
 import inspect # debugging purpose
 import string
-from sys import platform
+from sys import platform, stdout
 from utils import mkdir
 
 class AuthenticationException(Exception):
@@ -101,15 +101,15 @@ class BlackboardCrawler:
   def updatePrefs(self, key, value):
     self.prefs[key]=value
 
-  def log(self, s, t=0, coding='utf-8'):
+  def log(self, s, t=0, coding=stdout.encoding):
     if(self.flags.VERBOSE or t!=0):
       curframe = inspect.currentframe()
       calframe = inspect.getouterframes(curframe, 2)
       caller = calframe[1][3]
       if(isinstance(s,unicode)):
-        print(u'{0}:{1}'.format(caller.decode(coding), s).encode(coding))
-      else:
         print(u'{0}:{1}'.format(caller.decode(coding), s))
+      else:
+        print(u'{0}:{1}'.format(caller.decode(coding), s.decode(stdout.encoding)))
 
   def title_print(self, s):
     s = '@ {0} @'.format(s)
@@ -228,7 +228,7 @@ class BlackboardCrawler:
     if(isinstance(path,unicode)):
       self.log(u'path: {0}'.format(path))
     else:
-      self.log(u'path: {0}'.format(path.decode('utf-8')))
+      self.log(u'path: {0}'.format(path.decode(stdout.encoding)))
     self.log('url: {0}'.format(url))
     self.log("header: {0}".format(resp.headers))
     header_content = headers['Content-Disposition']
@@ -277,7 +277,7 @@ class BlackboardCrawler:
       if(isinstance(file_name,unicode)):
         self.log(u'url: {0} {1}'.format(file_url, file_name))
       else:
-        self.log(u'url: {0} {1}'.format(file_url, file_name.decode('utf-8')))
+        self.log(u'url: {0} {1}'.format(file_url, file_name.decode(stdout.encoding)))
       self._download_file(file_url, path_prefix)
 
   def _download_item_from_directories(self, path_prefix, directories, depth):
@@ -296,7 +296,7 @@ class BlackboardCrawler:
     if(isinstance(section_name,unicode)):
       self.log(u'----reading sections: {0}'.format(section_name))
     else:
-      self.log(u'----reading sections: {0}'.format(section_name.decode('utf-8')))
+      self.log(u'----reading sections: {0}'.format(section_name.decode(stdout.encoding)))
     dir_name = mkdir(path_prefix)
     # path_prefix = dir_name
     if(self.prefs.blackboard_url not in section_url):
@@ -324,7 +324,7 @@ class BlackboardCrawler:
     if(isinstance(course_name,unicode)):
       self.log(u'reading course: {0}'.format(course_name))
     else:
-      self.log(u'reading course: {0}'.format(course_name.decode('utf-8')))
+      self.log(u'reading course: {0}'.format(course_name.decode(stdout.encoding)))
     course_url = "{1}/webapps/blackboard/execute/courseMain?course_id={0}".format(course_id, self.prefs.blackboard_url)
     course_url_resp = self.sess.get(course_url)
     section_raw = re.findall('<hr>(.+?)<hr>',course_url_resp.text)[0]

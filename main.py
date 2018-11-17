@@ -3,6 +3,7 @@
 from Tkinter import *
 import BlackboardCrawler
 import inspect
+from sys import stdout
 
 class Application(Frame):
   debug=False
@@ -117,7 +118,6 @@ class Application(Frame):
       self.bc.log("download clicked")
       def selected(i, v):
         return self.course_bool_var[i].get()
-      print (list(enumerate(self.courses))[0])
       course_download = filter(lambda x: selected(*x), list(enumerate(self.courses)))
       try:
         self.bc.download(course_download)
@@ -149,7 +149,7 @@ class Application(Frame):
       if(isinstance(self.courses[i][2],unicode)):
         self.bc.log(u'rendering {0}'.format(self.courses[i][2]))
       else:
-        self.bc.log(u'rendering {0}'.format(self.courses[i][2].decode('utf-8')))
+        self.bc.log(u'rendering {0}'.format(self.courses[i][2].decode(stdout.encoding)))
       course = self.courses[i]
       (course_id, course_code, display_name) = course
       bool_var = BooleanVar()
@@ -181,7 +181,7 @@ class Application(Frame):
     # self._prompt(title="Error", text="login unsuccessful")
     self.bc.log('finish login_unsuccess')
 
-  def log(self, s, t=0, coding='utf-8'):
+  def log(self, s, t=0, coding=stdout.encoding):
     VERBOSE = True if getattr(self,'bc') is None else self.bc.flags.VERBOSE
     if(VERBOSE or t!=0):
       curframe = inspect.currentframe()
@@ -190,7 +190,7 @@ class Application(Frame):
       if(isinstance(s,unicode)):
         print(u'{0}:{1}'.format(caller.decode(coding), s))
       else:
-        print('{0}:{1}'.format(caller.decode(coding), s))
+        print('{0}:{1}'.format(caller.decode(coding), s.decode(stdout.encoding)))
 
   def _prompt(self, geometry='200x100', title='Prompt', text='content'):
     self.prompt = Toplevel(self)
