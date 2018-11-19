@@ -80,8 +80,8 @@ class Application(Frame):
     self.login_frame.username_label['text'] = 'username: '
     self.login_frame.password_label['text'] = 'password: '
 
-    self.login_frame.username_entry = Entry(self.login_frame)
-    self.login_frame.password_entry = Entry(self.login_frame,show='*')
+    self.login_frame.username_entry = EntryWithPlaceholder(self.login_frame, "1155123456")
+    self.login_frame.password_entry = EntryWithPlaceholder(self.login_frame, "********", show='*')
 
     self.login_frame.confirm_button = Button(self.login_frame)
     self.login_frame.cancel_button = Button(self.login_frame)
@@ -312,6 +312,32 @@ class Application(Frame):
     Frame.__init__(self, master)
     self.pack()
     self.initialize()
+
+class EntryWithPlaceholder(Entry):
+  def __init__(self, master=None, placeholder="PLACEHOLDER", color='grey', show=''):
+    Entry.__init__(self, master, show=show)
+
+    self.placeholder = placeholder
+    self.placeholder_color = color
+    self.default_fg_color = self['fg']
+
+    self.bind("<FocusIn>", self.foc_in)
+    self.bind("<FocusOut>", self.foc_out)
+
+    self.put_placeholder()
+
+  def put_placeholder(self):
+    self.insert(0, self.placeholder)
+    self['fg'] = self.placeholder_color
+
+  def foc_in(self, *args):
+    if self['fg'] == self.placeholder_color:
+      self.delete('0', 'end')
+      self['fg'] = self.default_fg_color
+
+  def foc_out(self, *args):
+    if not self.get():
+      self.put_placeholder()
 
 root = Tk()
 root.title('Blackboard Crawler authored by Ben Chan')
