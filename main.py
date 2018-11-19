@@ -3,7 +3,6 @@
 from Tkinter import *
 import BlackboardCrawler
 import inspect
-from sys import stdout
 
 class Application(Frame):
   debug=False
@@ -149,7 +148,7 @@ class Application(Frame):
       if(isinstance(self.courses[i][2],unicode)):
         self.bc.log(u'rendering {0}'.format(self.courses[i][2]))
       else:
-        self.bc.log(u'rendering {0}'.format(self.courses[i][2].decode(stdout.encoding)))
+        self.bc.log('rendering {0}'.format(self.courses[i][2]))
       course = self.courses[i]
       (course_id, course_code, display_name) = course
       bool_var = BooleanVar()
@@ -181,16 +180,16 @@ class Application(Frame):
     # self._prompt(title="Error", text="login unsuccessful")
     self.bc.log('finish login_unsuccess')
 
-  def log(self, s, t=0, coding=stdout.encoding):
+  def log(self, s, t=0, coding='utf-8'):
     VERBOSE = True if getattr(self,'bc') is None else self.bc.flags.VERBOSE
     if(VERBOSE or t!=0):
       curframe = inspect.currentframe()
       calframe = inspect.getouterframes(curframe, 2)
       caller = calframe[1][3]
       if(isinstance(s,unicode)):
-        print(u'{0}:{1}'.format(caller.decode(coding), s))
+        print('{0}:{1}'.format(caller, s.encode(coding)))
       else:
-        print('{0}:{1}'.format(caller.decode(coding), s.decode(stdout.encoding)))
+        print('{0}:{1}'.format(caller, s))
 
   def _prompt(self, geometry='200x100', title='Prompt', text='content'):
     self.prompt = Toplevel(self)
