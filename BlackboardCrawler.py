@@ -186,6 +186,7 @@ class BlackboardCrawler:
 
   def make_course_dir(self, course_info):
     course_id, course_code, course_name = course_info
+    print("{0}; {1}; {2}".format(self.prefs.folder_prefix, course_code, os.path.join(self.prefs.folder_prefix, course_code)))
     #course_code: 2018R1-CSCI4180
     if(self.prefs.folder_name_style == 'CC_ONLY'):
       course_code = course_code.split('-')[1]
@@ -209,6 +210,9 @@ class BlackboardCrawler:
       # Ask if the user want to continue download if the folder exists?
       for section in sections:
         section_title = section[1]
+        # print '---------------------'
+        # print dirname, section_title, os.path.join(dirname, section_title)
+        # print '---------------------'
         path_prefix = os.path.join(dirname, section_title)
         directories, files = self._get_item_from_section(path_prefix, section)
         self._download_item_from_directories(path_prefix, directories, self.flags.MAX_DEPTH)
@@ -216,7 +220,7 @@ class BlackboardCrawler:
         time.sleep(self.flags.SLEEP_TIME)
 
   def _download_file(self, url, path):
-    invalid_chars = '/:*?"<>|'
+    invalid_chars = ':*?"<>|'
     path = ''.join(c for c in path if c not in invalid_chars)
     if(self.prefs.blackboard_url not in url):
       url = self.prefs.blackboard_url+url

@@ -3,7 +3,7 @@ import uuid
 import string
 
 def mkdir(name):
-  invalid_chars = '/:*?"<>|'
+  invalid_chars = ':*?"<>|'
   try:
     name = ''.join(c for c in name if c not in invalid_chars)
     if(os.path.exists(name)):
@@ -18,6 +18,7 @@ def mkdir(name):
     return dir_name
 
 def download_file(url, path, sess):
+  invalid_chars = ':*?"<>|'
   try:
     path = ''.join(c for c in path if c not in invalid_chars)
     if(blackboard_url not in url):
