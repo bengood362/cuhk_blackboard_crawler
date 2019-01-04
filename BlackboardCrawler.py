@@ -320,11 +320,12 @@ class BlackboardCrawler:
       section_url = self.prefs.blackboard_url+section_url
     course_section_resp = self.sess.get(section_url)
     directories = re.findall('<a href="(/webapps/blackboard/content/listContent.jsp?.+?)"><span style=".+?">(.+?)</span>', course_section_resp.text)
-    files = re.findall('<a href="(/bbcswebdav.+?)".+?">.+?">(.+)</span>', course_section_resp.text)
+    files = re.findall('<a(?:.+?|)href="(?:https://blackboard.cuhk.edu.hk|)(/bbcswebdav.+?)">(.+?)<', course_section_resp.text)
     """ files type 1
     <a href="/bbcswebdav/pid-2238145-dt-content-rid-8465171_1/xid-8465171_1" onClick="this.href='/webapps/blackboard/execute/content/file?cmd=view&content_id=_2238145_1&course_id=_87673_1'">
       <span style="color:#000000;">lesson 11</span>
     </a>
+    <a href="https://blackboard.cuhk.edu.hk/bbcswebdav/pid-2470832-dt-content-rid-13383234_1/xid-13383234_1">大綱</a>
     """
     files2 = re.findall('<a href="(/bbcswebdav.+?)".+?">.+?">(.+)[^</span>]</a>', course_section_resp.text)
     """ files type 2
@@ -341,10 +342,7 @@ class BlackboardCrawler:
     self.BC_log('reading course: {0}'.format(course_name))
     course_url = "{1}/webapps/blackboard/execute/courseMain?course_id={0}".format(course_id, self.prefs.blackboard_url)
     course_url_resp = self.sess.get(course_url)
-    print(course_url)
-    print(course_url_resp.text)
-    section_raw = re.findall('<hr>(.+?)<hr>',course_url_resp.text)[0]
-    sections = re.findall('<a href="(/webapps/blackboard/content/listContent.jsp?.+?)".+?">.+?">(.+?)</span>', section_raw)
+    sections = re.findall('<a href="(/webapps/blackboard/content/listContent.jsp?.+?)".+?">.+?">(.+?)</span>', course_url_resp.text)
     return sections
 
   def _BC_init_bb_session(self):
