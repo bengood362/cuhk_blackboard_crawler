@@ -2,10 +2,13 @@ import os
 import uuid
 import string
 
+def directory_flatten(path):
+  for c in '\\/:*?"<>|':
+      path = path.replace(c, '-')
+  return path
+
 def mkdir(name):
-  invalid_chars = ':*?"<>|'
   try:
-    name = ''.join(c for c in name if c not in invalid_chars)
     if(os.path.exists(name)):
       pass # dir exists
     else:
@@ -18,9 +21,7 @@ def mkdir(name):
     return dir_name
 
 def download_file(url, path, sess):
-  invalid_chars = ':*?"<>|'
   try:
-    path = ''.join(c for c in path if c not in invalid_chars)
     if(blackboard_url not in url):
       url = blackboard_url+url
     resp = sess.get(url, stream=True)

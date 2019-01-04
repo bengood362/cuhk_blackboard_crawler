@@ -12,7 +12,7 @@ from getpass import getpass
 import inspect # debugging purpose
 import string
 from sys import platform, stdout
-from utils import mkdir
+from utils import mkdir, directory_flatten
 
 class AuthenticationException(Exception):
   pass
@@ -192,7 +192,7 @@ class BlackboardCrawler:
       course_code = course_code.split('-')[1]
       if(not reduce(lambda x,y: x and y, map(lambda x: not x.isdigit(), course_code))):
         while(not course_code[-1].isdigit()):
-          course_code = course_code[:-1]
+          course_code = directory_flatten(course_code[:-1])
       dir_name = mkdir(os.path.join(self.prefs.folder_prefix, course_code))
     elif(self.prefs.folder_name_style == 'FULL'):
       dir_name = mkdir(os.path.join(self.prefs.folder_prefix, course_name))
@@ -209,7 +209,7 @@ class BlackboardCrawler:
       dirname = self.make_course_dir(course_info)
       # Ask if the user want to continue download if the folder exists?
       for section in sections:
-        section_title = section[1]
+        section_title = directory_flatten(section[1])
         # print '---------------------'
         # print dirname, section_title, os.path.join(dirname, section_title)
         # print '---------------------'
@@ -220,8 +220,6 @@ class BlackboardCrawler:
         time.sleep(self.flags.SLEEP_TIME)
 
   def _download_file(self, url, path):
-    invalid_chars = ':*?"<>|'
-    path = ''.join(c for c in path if c not in invalid_chars)
     if(self.prefs.blackboard_url not in url):
       url = self.prefs.blackboard_url+url
     resp = self.sess.get(url, stream=True)
@@ -289,6 +287,7 @@ class BlackboardCrawler:
       return
     for directory in directories:
       directory_url, directory_title = directory
+      directory_title = directory_flatten(directory_title[:64])
       self.log(u'reading: {0} {1}'.format(directory_url, directory_title))
       new_prefix = os.path.join(path_prefix, directory_title)
       next_directories, files = self._get_item_from_section(new_prefix, directory)
@@ -297,6 +296,7 @@ class BlackboardCrawler:
 
   def _get_item_from_section(self, path_prefix, section):
     section_url, section_name = section
+    section_name = section_name[:64]
     if(isinstance(section_name,unicode)):
       self.log(u'----reading sections: {0}'.format(section_name))
     else:
