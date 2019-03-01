@@ -1,8 +1,11 @@
 #!coding: utf-8
 # main.py
-from Tkinter import *
+from tkinter import *
 import BlackboardCrawler
 import inspect
+
+def map_l(*args):
+  return list(map(*args))
 
 class Application(Frame):
   debug=False
@@ -33,9 +36,9 @@ class Application(Frame):
     # print types
     self._prompt_form(
       keys=BlackboardCrawler.BCPrefs.keys,
-      types=map(lambda x: BlackboardCrawler.BCPrefs.get_pref_type(x), BlackboardCrawler.BCPrefs.keys),
-      option_vals=map(lambda x: BlackboardCrawler.BCPrefs.get_option_vals(x), BlackboardCrawler.BCPrefs.keys),
-      default_vals=map(lambda x: self.blackboard_options_update[x], BlackboardCrawler.BCPrefs.keys),
+      types=map_l(lambda x: BlackboardCrawler.BCPrefs.get_pref_type(x), BlackboardCrawler.BCPrefs.keys),
+      option_vals=map_l(lambda x: BlackboardCrawler.BCPrefs.get_option_vals(x), BlackboardCrawler.BCPrefs.keys),
+      default_vals=map_l(lambda x: self.blackboard_options_update[x], BlackboardCrawler.BCPrefs.keys),
       yes_handler=lambda result: setattr(self, 'blackboard_options_update', result)
     )
     print(self.blackboard_options_update)
@@ -44,7 +47,7 @@ class Application(Frame):
     def login(event=None):
       username = self.login_frame.username_entry.get()
       password = self.login_frame.password_entry.get()
-      self.bc = BlackboardCrawler.BlackboardCrawler(username, password)
+      self.bc = BlackboardCrawler.BlackboardCrawler(username, password, self)
       for (key,val) in self.blackboard_options_update.items():
         self.bc.updatePrefs(key, val)
       self.login_popup = Toplevel()
@@ -145,10 +148,7 @@ class Application(Frame):
     self.grid_columnconfigure(1, weight=0)
     self.grid_columnconfigure(1, weight=1)
     for i in range(len(self.courses)):
-      if(isinstance(self.courses[i][2],unicode)):
-        self.bc.log(u'rendering {0}'.format(self.courses[i][2]))
-      else:
-        self.bc.log('rendering {0}'.format(self.courses[i][2]))
+      self.bc.log('rendering {0}'.format(self.courses[i][2]))
       course = self.courses[i]
       (course_id, course_code, display_name) = course
       bool_var = BooleanVar()
@@ -186,10 +186,7 @@ class Application(Frame):
       curframe = inspect.currentframe()
       calframe = inspect.getouterframes(curframe, 2)
       caller = calframe[1][3]
-      if(isinstance(s,unicode)):
-        print('{0}:{1}'.format(caller, s.encode(coding)))
-      else:
-        print('{0}:{1}'.format(caller, s))
+      print('{0}:{1}'.format(caller, s))
 
   def _prompt(self, geometry='200x100', title='Prompt', text='content'):
     self.prompt = Toplevel(self)

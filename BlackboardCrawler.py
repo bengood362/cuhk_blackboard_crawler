@@ -2,7 +2,7 @@
 import json
 import time
 import requests
-import urllib2
+import urllib.request as urllib2
 import re
 import os
 import uuid # in case the error happens
@@ -16,6 +16,16 @@ from utils import mkdir, directory_flatten
 
 class AuthenticationException(Exception):
   pass
+
+def map_l(*args):
+  return list(map(*args))
+
+def reduce(lambda_expression, input_arr):
+  if(len(input_arr) > 1):
+    t = input_arr[0]
+    for val in input_arr[1:]:
+      t = lambda_expression(t, val)
+    return t
 
 # Only developer should change it?
 class BCFlags(object):
@@ -94,9 +104,11 @@ class BlackboardCrawler:
     self,
     username,
     password,
+    parent
   ):
     self.username = username
     self.password = password
+    self.parent = parent
 
   def updatePrefs(self, key, value):
     self.prefs[key]=value
@@ -106,10 +118,7 @@ class BlackboardCrawler:
       curframe = inspect.currentframe()
       calframe = inspect.getouterframes(curframe, 2)
       caller = calframe[1][3]
-      if(isinstance(s,unicode)):
-        print('{0}:{1}'.format(caller, s.encode(coding)))
-      else:
-        print('{0}:{1}'.format(caller, s))
+      self.parent.log('{0}:{1}'.format(caller, s))
 
   def title_print(self, s):
     s = '@ {0} @'.format(s)
@@ -146,7 +155,7 @@ class BlackboardCrawler:
   # download courses
   def download(self, selected_courses_info):
     # Un-enumerate it
-    selected_courses_info = map(lambda x: x[1], selected_courses_info)
+    selected_courses_info = map_l(lambda x: x[1], selected_courses_info)
     self._download(selected_courses_info)
 
   def get_metadata_from_file(self, file_name):
@@ -190,7 +199,7 @@ class BlackboardCrawler:
     #course_code: 2018R1-CSCI4180
     if(self.prefs.folder_name_style == 'CC_ONLY'):
       course_code = course_code.split('-')[1]
-      if(not reduce(lambda x,y: x and y, map(lambda x: not x.isdigit(), course_code))):
+      if(not reduce(lambda x,y: x and y, map_l(lambda x: not x.isdigit(), course_code))):
         while(not course_code[-1].isdigit()):
           course_code = directory_flatten(course_code[:-1])
       dir_name = mkdir(os.path.join(self.prefs.folder_prefix, course_code))
@@ -224,13 +233,10 @@ class BlackboardCrawler:
       url = self.prefs.blackboard_url+url
     resp = self.sess.get(url, stream=True)
     headers = resp.headers
-    url = urllib2.urlparse.unquote(resp.url)
+    url = urllib2.unquote(resp.url)
     if(platform == "darwin"):
       url = url.encode('latin1')
-    if(isinstance(path,unicode)):
-      self.log(u'path: {0}'.format(path))
-    else:
-      self.log('path: {0}'.format(path))
+    self.log('path: {0}'.format(path))
     self.log('url: {0}'.format(url))
     self.log("header: {0}".format(resp.headers))
     header_content = headers['Content-Disposition']
@@ -244,7 +250,7 @@ class BlackboardCrawler:
     # self.log('str local_filename3: {0}'.format(str(local_filename_unquoted)))
     # self.log('repr local_filename3: {0}'.format(repr(local_filename_unquoted)))
     # self.log('type local_filename3: {0}'.format(type(local_filename_unquoted)))
-    final_local_filename = local_filename_unquoted.decode(coding)
+    final_local_filename = local_filename_unquoted
     # final_local_filename = local_filename_unquoted
     # self.log(u'local_filename4: {0}'.format(final_local_filename))
     # self.log(u'repr local_filename4: {0}'.format(repr(final_local_filename)))
@@ -276,10 +282,7 @@ class BlackboardCrawler:
     self.log(repr(files))
     for f in files:
       file_url, file_name = f
-      if(isinstance(file_name,unicode)):
-        self.log(u'url: {0} {1}'.format(file_url, file_name))
-      else:
-        self.log('url: {0} {1}'.format(file_url, file_name))
+      self.log('url: {0} {1}'.format(file_url, file_name))
       self._download_file(file_url, path_prefix)
 
   def _download_item_from_directories(self, path_prefix, directories, depth):
@@ -297,10 +300,7 @@ class BlackboardCrawler:
   def _get_item_from_section(self, path_prefix, section):
     section_url, section_name = section
     section_name = section_name[:64]
-    if(isinstance(section_name,unicode)):
-      self.log(u'----reading sections: {0}'.format(section_name))
-    else:
-      self.log('----reading sections: {0}'.format(section_name))
+    self.log('----reading sections: {0}'.format(section_name))
     dir_name = mkdir(path_prefix)
     # path_prefix = dir_name
     if(self.prefs.blackboard_url not in section_url):
@@ -325,10 +325,7 @@ class BlackboardCrawler:
 
   def _get_course_sections(self, course_info):
     course_id, course_code, course_name = course_info
-    if(isinstance(course_name,unicode)):
-      self.log(u'reading course: {0}'.format(course_name))
-    else:
-      self.log('reading course: {0}'.format(course_name))
+    self.log('reading course: {0}'.format(course_name))
     course_url = "{1}/webapps/blackboard/execute/courseMain?course_id={0}".format(course_id, self.prefs.blackboard_url)
     course_url_resp = self.sess.get(course_url)
     section_raw = re.findall('<hr>(.+?)<hr>',course_url_resp.text)[0]
@@ -343,7 +340,7 @@ class BlackboardCrawler:
     blackboard_main_resp = sess.get(self.prefs.blackboard_url)
     next_url_1 = re.findall('url=(.+)', blackboard_main_resp.text)[0]
     # redirected to login page
-    next_url_1 = urllib2.urlparse.unquote(next_url_1)
+    next_url_1 = urllib2.unquote(next_url_1)
     login_page_resp = sess.get(next_url_1)
     self.login_page_url = login_page_resp.url
     self.sess = sess
