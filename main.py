@@ -145,37 +145,75 @@ class Application(Frame):
         else:
           cbv.set(0)
     self.master.geometry('1000x500')
+    self.master.update_idletasks()
     self.courses = self.bc.BC_get_courses()
     self.course_checkbox = []
     self.course_label = []
     self.course_bool_var = []
-    self.grid_columnconfigure(1, weight=0)
-    self.grid_columnconfigure(1, weight=1)
+    # for scrolling
+    self.grid_columnconfigure(0, weight=1)
+    self.grid_columnconfigure(0, weight=1)
+    self.frame_canvas = Frame(self)
+    self.frame_canvas.grid(row=0, column=0, pady=(5, 0), sticky='nw')
+    self.frame_canvas.grid_rowconfigure(0, weight=1)
+    self.frame_canvas.grid_columnconfigure(0, weight=1)
+    self.frame_canvas.grid_propagate(False)
+    self.canvas = Canvas(self.frame_canvas)
+    self.canvas.grid(row=0, column=0, sticky='news')
+    self.vsb = Scrollbar(self.frame_canvas, orient="vertical", command=self.canvas.yview)
+    self.vsb.grid(row=0, column=1, sticky='ns')
+    self.canvas.configure(yscrollcommand=self.vsb.set)
+    self.frame_courses = Frame(self.canvas)
+    self.canvas.create_window((0, 0), window=self.frame_courses, anchor='nw')
+    # self.canvas.bind("<MouseWheel>", self._on_mousewheel)
+    # for scrolling
     for i in range(len(self.courses)):
       self.bc.BC_log('rendering {0}'.format(self.courses[i][2]))
       course = self.courses[i]
       (course_id, course_code, display_name) = course
+
       bool_var = BooleanVar()
-      course_checkbox = Checkbutton(self, variable=bool_var)
-      course_label = Label(self)
+      course_checkbox = Checkbutton(self.frame_courses, variable=bool_var)
+      course_label = Label(self.frame_courses)
+
+      course_checkbox.grid(row=i, column=0, sticky='ns', padx=5, columnspan=1)
+      course_label['text'] = display_name
+      course_label.grid(row=i, column=1, sticky='nsw', padx=5, columnspan=1)
+
       self.course_checkbox.append(course_checkbox)
       self.course_label.append(course_label)
       self.course_bool_var.append(bool_var)
-      course_label['text'] = display_name
-      course_checkbox.grid(row=i, column=0, sticky='ns', padx=5, columnspan=1)
-      course_label.grid(row=i, column=1, sticky='nsw', padx=5, columnspan=1)
-    self.download_button = Button(self)
+
+    self.download_button = Button(self.frame_courses)
     self.download_button['text'] = 'Download'
     self.download_button['command'] = download
     self.download_button.grid(row=(i+1), column=0)
-    self.select_all_button = Button(self)
+    self.select_all_button = Button(self.frame_courses)
     self.select_all_button['text'] = 'Select All'
     self.select_all_button['command'] = select_all
     self.select_all_button.grid(row=(i+1), column=1)
-    self.select_this_sem_button = Button(self)
+    self.select_this_sem_button = Button(self.frame_courses)
     self.select_this_sem_button['text'] = 'Select this sem'
     self.select_this_sem_button['command'] = select_this_sem
     self.select_this_sem_button.grid(row=(i+1), column=2)
+    # first5columns_width = sum([buttons[0][j].winfo_width() for j in range(0, 5)])
+    # first5rows_height = sum([buttons[i][0].winfo_height() for i in range(0, 5)])
+    # frame_canvas.config(width=first5columns_width + vsb.winfo_width(),
+    #                     height=first5rows_height)
+    canvas_height = len(self.course_bool_var) * course_label.winfo_height()
+    canvas_width = max(
+      course_label.winfo_width()+course_checkbox.winfo_width(),
+      self.download_button.winfo_width()+self.select_all_button.winfo_width()+self.select_this_sem_button.winfo_width()
+    )
+    print("self.master.winfo_width()",self.master.winfo_width())
+    print("self.master.winfo_height()",self.master.winfo_height())
+    print("self.winfo_width()",self.winfo_width())
+    print("self.winfo_height()",self.winfo_height())
+    # self.frame_canvas.config(width=canvas_height, height=canvas_width+self.vsb.winfo_width())
+    self.frame_canvas.config(width=self.master.winfo_width(), height=self.master.winfo_height())
+    self.frame_courses.update_idletasks()
+    self.canvas.config(scrollregion=self.canvas.bbox("all"))
+    self.bind("<Configure>", self._on_resize)
 
     self.bc.BC_log('finish login_success')
 
@@ -312,6 +350,20 @@ class Application(Frame):
     Frame.__init__(self, master)
     self.pack()
     self.initialize()
+
+  def _on_mousewheel(self, event):
+    modifier = 1 if sys.platform == 'darwin' else 1/120
+    print("event.delta",event.delta)
+    self.canvas.yview_scroll(-1 * (event.delta * modifier), "units")
+
+  def _on_resize(self, event):
+    # determine the ratio of old width/height to new width/height
+    # wscale = float(event.width)/self.width
+    # hscale = float(event.height)/self.height
+    # self.width = event.width
+    # self.height = event.height
+    # resize the canvas
+    self.frame_canvas.config(width=event.width, height=event.height)
 
 class EntryWithPlaceholder(Entry):
   def __init__(self, master=None, placeholder="PLACEHOLDER", color='grey', show=''):
