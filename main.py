@@ -113,6 +113,7 @@ class Application(Frame):
       if(button and isinstance(button,Button)):
         button.destroy()
     del self.startup_buttons
+    # self.course_grid =
     self.show_courses()
 
   def show_courses(self):
@@ -158,8 +159,8 @@ class Application(Frame):
       self.course_label.append(course_label)
       self.course_bool_var.append(bool_var)
       course_label['text'] = display_name
-      course_checkbox.grid(row=i, column=0, sticky=W, padx=5, columnspan=1)
-      course_label.grid(row=i, column=1, sticky=W, padx=5, columnspan=1)
+      course_checkbox.grid(row=i, column=0, sticky='ns', padx=5, columnspan=1)
+      course_label.grid(row=i, column=1, sticky='nsw', padx=5, columnspan=1)
     self.download_button = Button(self)
     self.download_button['text'] = 'Download'
     self.download_button['command'] = download
