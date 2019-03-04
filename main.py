@@ -3,6 +3,7 @@
 from tkinter import *
 import BlackboardCrawler
 import inspect
+import traceback
 
 def map_l(*args):
   return list(map(*args))
@@ -20,7 +21,7 @@ class Application(Frame):
     self.option_button.pack(ipadx=10, ipady=10)
     self.debug_button = ''
     self.debug_button2 = ''
-    self.blackboard_options_update = BlackboardCrawler.BCPrefs.default_dict()
+    self.blackboard_options_update = BlackboardCrawler.BCPrefs.BCP_default_dict()
     self.debug_button = Button(self)
     self.debug_button['text'] = "Debug"
     self.debug_button['command'] = lambda: self._prompt_option(title='I am a prompt', text='haha\nThis is line 2', keys=['course code only', 'term and course code', 'full'], default_vals=['CC_ONLY', 'TERM_AND_CC', 'FULL'])
@@ -36,8 +37,8 @@ class Application(Frame):
     # print types
     self._prompt_form(
       keys=BlackboardCrawler.BCPrefs.keys,
-      types=map_l(lambda x: BlackboardCrawler.BCPrefs.get_pref_type(x), BlackboardCrawler.BCPrefs.keys),
-      option_vals=map_l(lambda x: BlackboardCrawler.BCPrefs.get_option_vals(x), BlackboardCrawler.BCPrefs.keys),
+      types=map_l(lambda x: BlackboardCrawler.BCPrefs.BCP_get_pref_type(x), BlackboardCrawler.BCPrefs.keys),
+      option_vals=map_l(lambda x: BlackboardCrawler.BCPrefs.BCP_get_option_vals(x), BlackboardCrawler.BCPrefs.keys),
       default_vals=map_l(lambda x: self.blackboard_options_update[x], BlackboardCrawler.BCPrefs.keys),
       yes_handler=lambda result: setattr(self, 'blackboard_options_update', result)
     )
@@ -49,7 +50,7 @@ class Application(Frame):
       password = self.login_frame.password_entry.get()
       self.bc = BlackboardCrawler.BlackboardCrawler(username, password, self)
       for (key,val) in self.blackboard_options_update.items():
-        self.bc.updatePrefs(key, val)
+        self.bc.BC_updatePrefs(key, val)
       self.login_popup = Toplevel()
       self.login_popup.geometry('200x100')
       self.login_popup.grab_set()
@@ -59,13 +60,14 @@ class Application(Frame):
       self.login_popup.message_label.grid(row=0, column=0)
       self.login_popup.confirm_button.grid(row=1, column=0)
       try:
-        self.bc.login()
+        self.bc.BC_login()
         self.login_popup.title("Success")
         self.login_popup.message_label['text'] = "Login successfully"
         self.login_popup.confirm_button['command'] = lambda: [self.login_popup.grab_release(), self.login_popup.destroy(), self.login_frame.destroy()]
         self.login_frame.destroy()
         self.login_success()
       except Exception as inst:
+        self.log(traceback.format_exc())
         self.log(inst)
         self.login_popup.title("Failed")
         # self.login_popup.message_label['text'] = str(inst)
@@ -108,7 +110,7 @@ class Application(Frame):
     self._prompt(title="Unsuccess", text='Download failed: {0}'.format(reason))
 
   def login_success(self):
-    self.bc.log('login_success')
+    self.bc.BC_log('login_success')
     for button in self.startup_buttons:
       if(button and isinstance(button,Button)):
         button.destroy()
@@ -118,18 +120,19 @@ class Application(Frame):
 
   def show_courses(self):
     def download(event=None):
-      self.bc.log("download clicked")
+      self.bc.BC_log("download clicked")
       def selected(i, v):
         return self.course_bool_var[i].get()
       course_download = filter(lambda x: selected(*x), list(enumerate(self.courses)))
       try:
-        self.bc.download(course_download)
+        self.bc.BC_download(course_download)
         self.download_success()
       except Exception as inst:
+        self.log(traceback.format_exc())
         self.log(inst)
         self.download_unsuccess(inst)
     def select_all(event=None):
-      self.bc.log("select all clicked")
+      self.bc.BC_log("select all clicked")
       for cbv in self.course_bool_var:
         cbv.set(1)
     def select_this_sem(event=None):
@@ -142,14 +145,14 @@ class Application(Frame):
         else:
           cbv.set(0)
     self.master.geometry('1000x500')
-    self.courses = self.bc.get_courses()
+    self.courses = self.bc.BC_get_courses()
     self.course_checkbox = []
     self.course_label = []
     self.course_bool_var = []
     self.grid_columnconfigure(1, weight=0)
     self.grid_columnconfigure(1, weight=1)
     for i in range(len(self.courses)):
-      self.bc.log('rendering {0}'.format(self.courses[i][2]))
+      self.bc.BC_log('rendering {0}'.format(self.courses[i][2]))
       course = self.courses[i]
       (course_id, course_code, display_name) = course
       bool_var = BooleanVar()
@@ -174,12 +177,12 @@ class Application(Frame):
     self.select_this_sem_button['command'] = select_this_sem
     self.select_this_sem_button.grid(row=(i+1), column=2)
 
-    self.bc.log('finish login_success')
+    self.bc.BC_log('finish login_success')
 
   def login_unsuccess(self):
-    self.bc.log('login_unsuccess')
+    self.bc.BC_log('login_unsuccess')
     # self._prompt(title="Error", text="login unsuccessful")
-    self.bc.log('finish login_unsuccess')
+    self.bc.BC_log('finish login_unsuccess')
 
   def log(self, s, t=0, coding='utf-8'):
     VERBOSE = True if getattr(self,'bc') is None else self.bc.flags.VERBOSE

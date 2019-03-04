@@ -20,6 +20,12 @@ def mkdir(name):
     os.mkdir(dir_name)
     return dir_name
 
+def title_print(self, s):
+    s = '@ {0} @'.format(s)
+    print('@'*len(s))
+    print(s)
+    print('@'*len(s))
+
 def download_file(url, path, sess):
   try:
     if(blackboard_url not in url):
