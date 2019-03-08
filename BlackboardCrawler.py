@@ -15,6 +15,10 @@ import string
 from sys import platform, stdout
 from utils import mkdir, directory_flatten, title_print
 
+# Course data: https://blackboard.cuhk.edu.hk/learn/api/public/v1/courses/_117025_1
+# Course contents: https://blackboard.cuhk.edu.hk/learn/api/public/v1/courses/_117025_1/contents
+# Courses for user: https://blackboard.cuhk.edu.hk/learn/api/public/v1/users/_225417_1/courses
+
 class AuthenticationException(Exception):
   pass
 
@@ -143,11 +147,12 @@ class BlackboardCrawler:
       if(availability.get('available', "Disabled") == "Yes"):
         course_resp = self.sess.get("{0}/learn/api/public/v1/courses/{1}".format(self.prefs.blackboard_url, course_id))
         course_info = course_resp.json()
-        course_id = course_info.get('id', "NO ID")
-        course_code = course_info.get('courseId', "NO COURSE CODE")
-        display_name = course_info.get('name', "NO NAME")
-        course_code = course_code.split('-')[1] if len(course_code.split('-'))>1 else course_code
-        courses_info.append((course_id, course_code, display_name))
+        if(course_info.get('availability',{}).get('available', 'No') == "Yes"):
+          course_id = course_info.get('id', "NO ID")
+          course_code = course_info.get('courseId', "NO COURSE CODE")
+          display_name = course_info.get('name', "NO NAME")
+          course_code = course_code.split('-')[1] if len(course_code.split('-'))>=2 else course_code
+          courses_info.append((course_id, course_code, display_name))
     # for course in courses:
     #   if(course['course']['isAvailable']):
     #     content_id = course['id']
@@ -206,7 +211,7 @@ class BlackboardCrawler:
     print("{0}; {1}; {2}".format(self.prefs.folder_prefix, course_code, os.path.join(self.prefs.folder_prefix, course_code)))
     #course_code: 2018R1-CSCI4180
     if(self.prefs.folder_name_style == 'CC_ONLY'):
-      course_code = course_code.split('-')[1]
+      course_code = course_code.split('-')[1] if len(course_code.split('-'))>=2 else course_code
       if(not reduce(lambda x,y: x and y, map_l(lambda x: not x.isdigit(), course_code))):
         while(not course_code[-1].isdigit()):
           course_code = directory_flatten(course_code[:-1])
@@ -334,8 +339,10 @@ class BlackboardCrawler:
   def _BC_get_course_sections(self, course_info):
     course_id, course_code, course_name = course_info
     self.BC_log('reading course: {0}'.format(course_name))
-    course_url = "{0}/learn/api/public/v1/courses/{1}/contents/".format(self.prefs.blackboard_url, course_id)
+    course_url = "{1}/webapps/blackboard/execute/courseMain?course_id={0}".format(course_id, self.prefs.blackboard_url)
     course_url_resp = self.sess.get(course_url)
+    print(course_url)
+    print(course_url_resp.text)
     section_raw = re.findall('<hr>(.+?)<hr>',course_url_resp.text)[0]
     sections = re.findall('<a href="(/webapps/blackboard/content/listContent.jsp?.+?)".+?">.+?">(.+?)</span>', section_raw)
     return sections
